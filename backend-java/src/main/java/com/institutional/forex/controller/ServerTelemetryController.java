@@ -130,13 +130,16 @@ public class ServerTelemetryController {
         mt5Status.put("status", "CONNECTED");
         mt5Status.put("mode", "MT5 Cloud Gateway & Broker Sync");
         mt5Status.put("account", "57452535486");
-        mt5Status.put("broker", "GTC Global Trade Capital Ltd");
+        mt5Status.put("name", "Mohammad Nekookar");
+        mt5Status.put("broker", "GTC Global Trade Capital Co. Limited");
         mt5Status.put("server", "GTCGlobalTrade-Demo");
-        mt5Status.put("balance", "$50,000.00");
-        mt5Status.put("equity", "$50,000.00");
+        mt5Status.put("balance", "$100.00");
+        mt5Status.put("equity", "$100.00");
+        mt5Status.put("leverage", "1:500");
         mt5Status.put("pingMs", 14);
         metrics.put("mt5", mt5Status);
 
         return ResponseEntity.ok(metrics);
     }
 }
+
