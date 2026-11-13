@@ -95,26 +95,27 @@ public class MarketDataController {
             @RequestParam(required = false, defaultValue = "D1") String timeframe,
             @RequestParam(required = false, defaultValue = "60") int count) {
         
-        // 1. If D1 requested, check local cache first
-        if ("D1".equalsIgnoreCase(timeframe)) {
-            File file = new File(CANDLES_PATH);
-            if (file.exists() && file.length() > 100) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> data = objectMapper.readValue(file, Map.class);
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> candlesMap = (Map<String, Object>) data.get("candles");
-                    if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
-                        Object list = candlesMap.get(pair.toUpperCase());
-                        if (list instanceof java.util.List && !((java.util.List<?>) list).isEmpty()) {
-                            return ResponseEntity.ok(list);
-                        }
+        // 1. Check local cache first for D1, H4, and H1
+        File file = new File(CANDLES_PATH);
+        if (file.exists() && file.length() > 100) {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> data = objectMapper.readValue(file, Map.class);
+                String mapKey = "D1".equalsIgnoreCase(timeframe) ? "candles"
+                        : ("H4".equalsIgnoreCase(timeframe) ? "candles_h4"
+                        : ("H1".equalsIgnoreCase(timeframe) ? "candles_h1" : "candles"));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> candlesMap = (Map<String, Object>) data.get(mapKey);
+                if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
+                    Object list = candlesMap.get(pair.toUpperCase());
+                    if (list instanceof java.util.List && !((java.util.List<?>) list).isEmpty()) {
+                        return ResponseEntity.ok(list);
                     }
-                } catch (Exception ignored) {}
-            }
+                }
+            } catch (Exception ignored) {}
         }
 
-        // 2. Query MT5 daemon for real/live timeframe candles (H4, H1, etc.)
+        // 2. Query MT5 daemon for real/live timeframe candles (dynamic fallback)
         try {
             String daemonUrl = "http://127.0.0.1:8085/api/mt5/candles?symbol=" + pair.toUpperCase() 
                     + "&timeframe=" + timeframe.toUpperCase() + "&count=" + count;

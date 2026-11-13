@@ -1065,11 +1065,19 @@
             const tp1Price = isOriginMode ? sig.originTp1 : sig.liveTp1;
             const tp2Price = isOriginMode ? sig.originTp2 : sig.liveTp2;
 
-            let minP = Math.min(...candles.map(c => c.low), slPrice, tp1Price, tp2Price, entryPrice);
-            let maxP = Math.max(...candles.map(c => c.high), slPrice, tp1Price, tp2Price, entryPrice);
-            const range = Math.max(0.0005, maxP - minP);
-            minP -= range * 0.06;
-            maxP += range * 0.06;
+            let minP = Math.min(...candles.map(c => c.low));
+            let maxP = Math.max(...candles.map(c => c.high));
+            if (this.activeTf === 'D1') {
+                minP = Math.min(minP, slPrice, tp1Price, tp2Price, entryPrice);
+                maxP = Math.max(maxP, slPrice, tp1Price, tp2Price, entryPrice);
+            } else {
+                // In H4 / H1 intraday views, keep vertical focus strictly on candle price action so candles are never squished
+                minP = Math.min(minP, entryPrice);
+                maxP = Math.max(maxP, entryPrice);
+            }
+            const range = Math.max(0.0004, maxP - minP);
+            minP -= range * 0.08;
+            maxP += range * 0.08;
 
             const scaleY = (p) => padTop + ((maxP - p) / (maxP - minP)) * priceH;
             const stepX = plotW / candles.length;
@@ -1099,6 +1107,17 @@
                 { id: 'ENT', text: `${isOriginMode ? 'Origin' : 'Spot'}: ${entryPrice}`, rawY: scaleY(entryPrice), color: '#38bdf8', bg: 'rgba(56,189,248,0.18)', dash: 'none' },
                 { id: 'SL',  text: `SL: ${slPrice} (-${sig.suggestedSlPips}p)`, rawY: scaleY(slPrice), color: '#f43f5e', bg: 'rgba(244,63,94,0.16)', dash: '4,3' }
             ];
+
+            // In H1 / H4, adjust label text if price is out of current view
+            if (this.activeTf !== 'D1') {
+                rawLabels.forEach(lbl => {
+                    if (lbl.rawY < padTop) {
+                        lbl.text = `▲ ${lbl.id}: ${lbl.id === 'SL' ? slPrice : (lbl.id === 'TP2' ? tp2Price : (lbl.id === 'TP1' ? tp1Price : entryPrice))}`;
+                    } else if (lbl.rawY > padTop + priceH) {
+                        lbl.text = `▼ ${lbl.id}: ${lbl.id === 'SL' ? slPrice : (lbl.id === 'TP2' ? tp2Price : (lbl.id === 'TP1' ? tp1Price : entryPrice))}`;
+                    }
+                });
+            }
 
             // Sort top-to-bottom by rawY and enforce minimum 20px vertical spacing
             rawLabels.sort((a, b) => a.rawY - b.rawY);
@@ -1144,17 +1163,21 @@
                     </text>
 
                     <!-- Horizontal Price Lines + Collision-Free Right Axis Pills -->
-                    ${rawLabels.map(lbl => `
-                        <line x1="${sigX.toFixed(1)}" y1="${lbl.rawY.toFixed(1)}" x2="${padLeft + plotW}" y2="${lbl.rawY.toFixed(1)}"
-                              stroke="${lbl.color}" stroke-width="1.2" ${lbl.dash !== 'none' ? `stroke-dasharray="${lbl.dash}"` : ''}/>
-                        <polyline points="${padLeft + plotW},${lbl.rawY.toFixed(1)} ${padLeft + plotW + 10},${lbl.adjY.toFixed(1)} ${padLeft + plotW + 14},${lbl.adjY.toFixed(1)}"
-                                  fill="none" stroke="${lbl.color}" stroke-width="1"/>
+                    ${rawLabels.map(lbl => {
+                        const inView = lbl.rawY >= padTop && lbl.rawY <= padTop + priceH;
+                        return `
+                        ${inView ? `
+                            <line x1="${sigX.toFixed(1)}" y1="${lbl.rawY.toFixed(1)}" x2="${padLeft + plotW}" y2="${lbl.rawY.toFixed(1)}"
+                                  stroke="${lbl.color}" stroke-width="1.2" ${lbl.dash !== 'none' ? `stroke-dasharray="${lbl.dash}"` : ''}/>
+                            <polyline points="${padLeft + plotW},${lbl.rawY.toFixed(1)} ${padLeft + plotW + 10},${lbl.adjY.toFixed(1)} ${padLeft + plotW + 14},${lbl.adjY.toFixed(1)}"
+                                      fill="none" stroke="${lbl.color}" stroke-width="1"/>
+                        ` : ''}
                         <rect x="${padLeft + plotW + 14}" y="${(lbl.adjY - 8.5).toFixed(1)}" width="${padRight - 18}" height="17" rx="3.5"
                               fill="${lbl.bg}" stroke="${lbl.color}" stroke-width="0.9"/>
                         <text x="${padLeft + plotW + 20}" y="${(lbl.adjY + 3).toFixed(1)}" fill="${lbl.color}" font-size="9" font-weight="800" font-family="JetBrains Mono, monospace">
                             ${lbl.text}
                         </text>
-                    `).join('')}
+                    `;}).join('')}
 
                     <!-- EMA 50 & EMA 20 Lines -->
                     <polyline points="${ema50Pts}" fill="none" stroke="#a855f7" stroke-width="1.5" opacity="0.85"/>
@@ -1206,7 +1229,8 @@
                         const c = candles[idx];
                         if (!c) return '';
                         const cx = padLeft + idx * stepX + stepX / 2;
-                        const labelText = (c.date || c.time || '').substring(5);
+                        const raw = c.time || c.date || '';
+                        const labelText = raw.length > 10 ? raw.substring(5, 16) : raw.substring(5);
                         return `<text x="${cx.toFixed(1)}" y="${height - 6}" fill="#64748b" font-size="8" font-family="JetBrains Mono, monospace" text-anchor="middle">${labelText}</text>`;
                     }).join('')}
 
