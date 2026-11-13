@@ -1,0 +1,20 @@
+{
+  "id" : 1,
+  "userIdentifier" : "DEFAULT_USER",
+  "riskPerTradePercent" : 1.0,
+  "maxSingleCurrencyExposurePercent" : 2.0,
+  "maxTotalPortfolioRiskPercent" : 5.0,
+  "defaultLotSize" : 0.1,
+  "geminiApiKey" : null,
+  "preferredLanguage" : "fa",
+  "theme" : "DARK",
+  "soundAlertsEnabled" : true,
+  "autoSyncExcelLogs" : true,
+  "username" : "admin",
+  "passwordHash" : "admin",
+  "authToken" : "21f34a1a-867b-4ad2-9e75-90808f464cc5",
+  "telegramBotToken" : "9255473348:AAFiBI_x37LLxw-QWP8Abpsact2I6iuAoBU",
+  "telegramChatId" : "5792130899",
+  "telegramAlertsEnabled" : true,
+  "updatedAtUtc" : "2026-11-13T13:51:15.369592"
+}

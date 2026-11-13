@@ -1,0 +1,475 @@
+EventId,Currency,CountryCode,EventName,MappedStandardIndicator,EventDateStr,TimeUtc,TimeTehran,ExactEventTimestampUtc,Impact,Actual,Previous,Consensus,Forecast,SurpriseStdDev,CreatedAtUtc
+te_aud_20261108_rba_hunter_speech,AUD,au,RBA Hunter Speech,,2026-11-08,10:30 PM,02:00 AM,2026-11-08T22:30,LOW,,,,,,2026-11-08T21:00:10.097038
+te_jpy_20261108_foreign_exchange_reserves,JPY,jp,Foreign Exchange Reserves,,2026-11-08,11:50 PM,03:20 AM,2026-11-08T23:50,LOW,,1178.4,1178.4,1178.4,,2026-11-08T21:00:10.108616
+te_aud_20261109_building_permits_mom_final,AUD,au,Building Permits MoM Final,Building Permits MoM,2026-11-09,12:30 AM,04:00 AM,2026-11-09T00:30,MED,,-5.2,5.1,5.1,,2026-11-08T21:00:10.114153
+te_aud_20261109_building_permits_yoy_final,AUD,au,Building Permits YoY Final,Building Permits MoM,2026-11-09,12:30 AM,04:00 AM,2026-11-09T00:30,MED,,12.1,-0.8,-0.8,,2026-11-08T21:00:10.120302
+te_aud_20261109_private_house_approvals_mom_final,AUD,au,Private House Approvals MoM Final,,2026-11-09,12:30 AM,04:00 AM,2026-11-09T00:30,LOW,,5.4,-5.3,-5.3,,2026-11-08T21:00:10.125303
+te_jpy_20261109_6_month_bill_auction,JPY,jp,6-Month Bill Auction,,2026-11-09,03:35 AM,07:05 AM,2026-11-09T03:35,LOW,,1.4051,1.4051,1.4051,,2026-11-08T21:00:10.131340
+te_jpy_20261109_coincident_index_prel,JPY,jp,Coincident Index Prel,Leading Economic Index,2026-11-09,05:00 AM,08:30 AM,2026-11-09T05:00,MED,,118.8,118,118,,2026-11-08T21:00:10.136340
+te_jpy_20261109_leading_economic_index_prel,JPY,jp,Leading Economic Index Prel,Leading Economic Index,2026-11-09,05:00 AM,08:30 AM,2026-11-09T05:00,MED,,118,116.7,117,,2026-11-08T21:00:10.139859
+te_eur_20261109_balance_of_trade,EUR,ea,Balance of Trade,Balance of Trade,2026-11-09,07:00 AM,10:30 AM,2026-11-09T07:00,HIGH,,19.5,19.6,17.6,,2026-11-08T21:00:10.146858
+te_eur_20261109_exports_mom,EUR,ea,Exports MoM,,2026-11-09,07:00 AM,10:30 AM,2026-11-09T07:00,MED,,-0.8,0.5,-0.8,,2026-11-08T21:00:10.153368
+te_eur_20261109_imports_mom,EUR,ea,Imports MoM,,2026-11-09,07:00 AM,10:30 AM,2026-11-09T07:00,MED,,0.9,0.5,0.9,,2026-11-08T21:00:10.159889
+te_eur_20261109_ecb_buch_speech,EUR,ea,ECB Buch Speech,,2026-11-09,11:00 AM,02:30 PM,2026-11-09T11:00,HIGH,,,,,,2026-11-08T21:00:10.164889
+te_usd_20261109_fed_bowman_speech,USD,us,Fed Bowman Speech,,2026-11-09,05:15 PM,08:45 PM,2026-11-09T17:15,LOW,,,,,,2026-11-08T21:00:10.171404
+te_eur_20261109_12_month_btf_auction,EUR,ea,12-Month BTF Auction,,2026-11-09,02:00 PM,05:30 PM,2026-11-09T14:00,LOW,,3.352,3.352,3.352,,2026-11-08T21:00:10.176920
+te_eur_20261109_3_month_btf_auction,EUR,ea,3-Month BTF Auction,,2026-11-09,02:00 PM,05:30 PM,2026-11-09T14:00,LOW,,2.788,2.788,2.788,,2026-11-08T21:00:10.181437
+te_eur_20261109_6_month_btf_auction,EUR,ea,6-Month BTF Auction,,2026-11-09,02:00 PM,05:30 PM,2026-11-09T14:00,LOW,,3.068,3.068,3.068,,2026-11-08T21:00:10.195466
+te_usd_20261109_fed_goolsbee_speech,USD,us,Fed Goolsbee Speech,,2026-11-09,08:00 PM,11:30 PM,2026-11-09T20:00,LOW,,,,,,2026-11-08T21:00:10.198974
+te_usd_20261109_wholesale_inventories_mom,USD,us,Wholesale Inventories MoM,,2026-11-09,03:00 PM,06:30 PM,2026-11-09T15:00,LOW,,0.5,0.6,0.6,,2026-11-08T21:00:10.205355
+te_usd_20261109_wholesale_sales_mom,USD,us,Wholesale Sales MoM,,2026-11-09,03:00 PM,06:30 PM,2026-11-09T15:00,LOW,,,,,,2026-11-08T21:00:10.209848
+te_usd_20261109_consumer_inflation_expectations,USD,us,Consumer Inflation Expectations,Inflation Expectations,2026-11-09,04:00 PM,07:30 PM,2026-11-09T16:00,HIGH,,3.9,3.8,3.8,,2026-11-08T21:00:10.213469
+te_usd_20261109_3_month_bill_auction,USD,us,3-Month Bill Auction,,2026-11-09,04:30 PM,08:00 PM,2026-11-09T16:30,LOW,,4.04,4.0999,4.0999,,2026-11-08T21:00:10.218472
+te_usd_20261109_6_month_bill_auction,USD,us,6-Month Bill Auction,,2026-11-09,04:30 PM,08:00 PM,2026-11-09T16:30,LOW,,4.15,4.15,4.15,,2026-11-08T21:00:10.229010
+te_cad_20261109_10_year_bond_auction,CAD,ca,10-Year Bond Auction,,2026-11-09,05:00 PM,08:30 PM,2026-11-09T17:00,LOW,,3.887,3.887,3.887,,2026-11-08T21:00:10.234016
+te_usd_20261109_fed_barkin_speech,USD,us,Fed Barkin Speech,,2026-11-09,05:15 PM,08:45 PM,2026-11-09T17:15,LOW,,,,,,2026-11-08T21:00:10.237017
+te_gbp_20261109_boe_gov_bailey_speech,GBP,gb,BoE Gov Bailey Speech,,2026-11-09,05:30 PM,09:00 PM,2026-11-09T17:30,HIGH,,,,,,2026-11-08T21:00:10.246061
+te_usd_20261109_3_year_note_auction,USD,us,3-Year Note Auction,,2026-11-09,06:00 PM,09:30 PM,2026-11-09T18:00,LOW,,4.932,4.932,4.932,,2026-11-08T21:00:10.251116
+te_aud_20261109_westpac_consumer_confidence_change,AUD,au,Westpac Consumer Confidence Change,Consumer Confidence,2026-11-09,11:30 PM,03:00 AM,2026-11-09T23:30,MED,,-4.7,-2.6,-2.6,,2026-11-08T21:00:10.261051
+te_aud_20261109_westpac_consumer_confidence_index,AUD,au,Westpac Consumer Confidence Index,Consumer Confidence,2026-11-09,11:30 PM,03:00 AM,2026-11-09T23:30,MED,,80.4,78.3,78.3,,2026-11-08T21:00:10.264172
+te_jpy_20261109_household_spending_mom,JPY,jp,Household Spending MoM,Retail Sales YoY,2026-11-09,11:30 PM,03:00 AM,2026-11-09T23:30,HIGH,,0.1,0.3,0.3,,2026-11-08T21:00:10.267254
+te_jpy_20261109_household_spending_yoy,JPY,jp,Household Spending YoY,Retail Sales YoY,2026-11-09,11:30 PM,03:00 AM,2026-11-09T23:30,HIGH,,-3.1,-3.1,0.1,,2026-11-08T21:00:10.269839
+te_jpy_20261109_boj_summary_of_opinions,JPY,jp,BoJ Summary of Opinions,,2026-11-09,11:50 PM,03:20 AM,2026-11-09T23:50,HIGH,,,,,,2026-11-08T21:00:10.274469
+te_jpy_20261109_current_account,JPY,jp,Current Account,Current Account to GDP,2026-11-09,11:50 PM,03:20 AM,2026-11-09T23:50,HIGH,,4062,3354.4,3100,,2026-11-08T21:00:10.277686
+te_jpy_20261109_bank_lending_yoy,JPY,jp,Bank Lending YoY,,2026-11-09,11:50 PM,03:20 AM,2026-11-09T23:50,LOW,,5.3,5.4,5.4,,2026-11-08T21:00:10.282295
+te_usd_20261109_atlanta_fed_gdpnow,USD,us,Atlanta Fed GDPNow,GDP Growth QoQ,2026-11-09,00:00,03:30 AM,2026-11-09T00:00,HIGH,,3.4,3.4,3.4,,2026-11-08T21:00:10.286417
+te_gbp_20261110_brc_retail_sales_monitor_yoy,GBP,gb,BRC Retail Sales Monitor YoY,Retail Sales YoY,2026-11-10,12:01 AM,03:31 AM,2026-11-10T00:01,HIGH,1.1,1,1.2,1.2,,2026-11-08T21:00:10.288959
+te_aud_20261110_nab_business_confidence,AUD,au,NAB Business Confidence,Business Confidence,2026-11-10,12:30 AM,04:00 AM,2026-11-10T00:30,MED,-15,-14,-15,-14,,2026-11-08T21:00:10.291003
+te_jpy_20261110_30_year_jgb_auction,JPY,jp,30-Year JGB Auction,,2026-11-10,03:35 AM,07:05 AM,2026-11-10T03:35,LOW,3.847,4.109,3.847,4.109,,2026-11-08T21:00:10.295720
+te_jpy_20261110_eco_watchers_survey_current,JPY,jp,Eco Watchers Survey Current,,2026-11-10,05:00 AM,08:30 AM,2026-11-10T05:00,LOW,46.1,47,46.8,47.2,,2026-11-08T21:00:10.298799
+te_jpy_20261110_eco_watchers_survey_outlook,JPY,jp,Eco Watchers Survey Outlook,,2026-11-10,05:00 AM,08:30 AM,2026-11-10T05:00,LOW,46.5,47.4,46.5,47.8,,2026-11-08T21:00:10.302809
+te_eur_20261110_unemployment_rate,EUR,ea,Unemployment Rate,Unemployment Rate,2026-11-10,06:30 AM,10:00 AM,2026-11-10T06:30,HIGH,8.2,8.3,8.4,8.3,,2026-11-08T21:00:10.305809
+te_usd_20261110_fed_waller_speech,USD,us,Fed Waller Speech,,2026-11-10,09:00 AM,12:30 PM,2026-11-10T09:00,LOW,,,,,,2026-11-08T21:00:10.310325
+te_eur_20261110_3_month_letras_auction,EUR,ea,3-Month Letras Auction,,2026-11-10,09:40 AM,01:10 PM,2026-11-10T09:40,LOW,2.652,2.635,2.652,2.635,,2026-11-08T21:00:10.313327
+te_gbp_20261110_treasury_gilt_2056_auction,GBP,gb,Treasury Gilt 2056 Auction,,2026-11-10,10:00 AM,01:30 PM,2026-11-10T10:00,LOW,5.54,5.82,5.54,5.82,,2026-11-08T21:00:10.317325
+te_usd_20261110_nfib_business_optimism_index,USD,us,NFIB Business Optimism Index,Business Confidence,2026-11-10,11:00 AM,02:30 PM,2026-11-10T11:00,MED,97.8,97.9,97.7,97.6,,2026-11-08T21:00:10.318832
+te_gbp_20261110_boe_lombardelli_speech,GBP,gb,BoE Lombardelli Speech,,2026-11-10,12:30 PM,04:00 PM,2026-11-10T12:30,HIGH,,,,,,2026-11-08T21:00:10.321839
+te_usd_20261110_adp_employment_change_weekly,USD,us,ADP Employment Change Weekly,Employment Change,2026-11-10,01:15 PM,04:45 PM,2026-11-10T13:15,HIGH,19.75,16.75,19.75,16.75,,2026-11-08T21:00:10.324839
+te_usd_20261110_core_inflation_rate_mom,USD,us,Core Inflation Rate MoM,Core Inflation MoM,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,0.3,0.3,0.2,0.2,,2026-11-08T21:00:10.327839
+te_usd_20261110_core_inflation_rate_yoy,USD,us,Core Inflation Rate YoY,Core CPI,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,,2.6,2.8,2.7,,2026-11-08T21:00:10.330186
+te_usd_20261110_inflation_rate_mom,USD,us,Inflation Rate MoM,CPI MoM,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,0.4,0.6,0.3,0.2,,2026-11-08T21:00:10.333692
+te_usd_20261110_inflation_rate_yoy,USD,us,Inflation Rate YoY,CPI YoY,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,,3.7,3.9,3.8,,2026-11-08T21:00:10.336699
+te_usd_20261110_cpi,USD,us,CPI,CPI YoY,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,337.51,336.94,337.02,337,,2026-11-08T21:00:10.342220
+te_usd_20261110_cpi_s_a,USD,us,CPI s.a,CPI YoY,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,HIGH,337.48,336.3,337.48,337,,2026-11-08T21:00:10.346218
+te_usd_20261110_real_earnings_mom,USD,us,Real Earnings MoM,Wage Growth YoY,2026-11-10,01:30 PM,05:00 PM,2026-11-10T13:30,MED,0,-0.4,0,-0.4,,2026-11-08T21:00:10.349737
+te_usd_20261110_redbook_yoy,USD,us,Redbook YoY,,2026-11-10,01:55 PM,05:25 PM,2026-11-10T13:55,LOW,10.1,10.4,9.3,10.4,,2026-11-08T21:00:10.353737
+te_eur_20261110_ecb_cipollone_speech,EUR,ea,ECB Cipollone Speech,,2026-11-10,02:00 PM,05:30 PM,2026-11-10T14:00,HIGH,,,,,,2026-11-08T21:00:10.357736
+te_usd_20261110_fed_logan_speech,USD,us,Fed Logan Speech,,2026-11-10,02:35 PM,06:05 PM,2026-11-10T14:35,LOW,,,,,,2026-11-08T21:00:10.361250
+te_usd_20261110_total_household_debt,USD,us,Total Household Debt,,2026-11-10,04:00 PM,07:30 PM,2026-11-10T16:00,LOW,19.1,18.8,19.1,18.8,,2026-11-08T21:00:10.365254
+te_eur_20261110_ecb_lane_speech,EUR,ea,ECB Lane Speech,,2026-11-10,04:45 PM,08:15 PM,2026-11-10T16:45,HIGH,,,,,,2026-11-08T21:00:10.368757
+te_usd_20261110_10_year_note_auction,USD,us,10-Year Note Auction,,2026-11-10,06:00 PM,09:30 PM,2026-11-10T18:00,LOW,,5.3,5.3,5.3,,2026-11-08T21:00:10.373077
+te_cad_20261110_boc_summary_of_deliberations,CAD,ca,BoC Summary of Deliberations,,2026-11-10,06:30 PM,10:00 PM,2026-11-10T18:30,LOW,,,,,,2026-11-08T21:00:10.378725
+te_cad_20261110_boc_survey_of_consumer_expectations,CAD,ca,BoC Survey of Consumer Expectations,,2026-11-10,06:30 PM,10:00 PM,2026-11-10T18:30,LOW,,,,,,2026-11-08T21:00:10.384292
+te_gbp_20261110_boe_pill_speech,GBP,gb,BoE Pill Speech,,2026-11-10,06:30 PM,10:00 PM,2026-11-10T18:30,HIGH,,,,,,2026-11-08T21:00:10.388805
+te_usd_20261110_fed_bowman_speech,USD,us,Fed Bowman Speech,,2026-11-10,11:30 PM,03:00 AM,2026-11-10T23:30,LOW,,,,,,2026-11-08T21:00:10.392817
+te_usd_20261110_fed_schmid_speech,USD,us,Fed Schmid Speech,,2026-11-10,06:30 PM,10:00 PM,2026-11-10T18:30,LOW,,,,,,2026-11-08T21:00:10.396815
+te_usd_20261110_api_crude_oil_stock_change,USD,us,API Crude Oil Stock Change,,2026-11-10,09:30 PM,01:00 AM,2026-11-10T21:30,LOW,,-5.267,-1,-5.267,,2026-11-08T21:00:10.401914
+te_jpy_20261110_reuters_tankan_index,JPY,jp,Reuters Tankan Index,Business Confidence,2026-11-10,11:00 PM,02:30 AM,2026-11-10T23:00,MED,,22,23,23,,2026-11-08T21:00:10.404914
+te_eur_20261110_consumer_confidence,EUR,ea,Consumer Confidence,Consumer Confidence,2026-11-10,00:00,03:30 AM,2026-11-10T00:00,MED,,84.1,83.4,83.4,,2026-11-08T21:00:10.412053
+te_aud_20261111_home_loans_qoq,AUD,au,Home Loans QoQ,,2026-11-11,12:30 AM,04:00 AM,2026-11-11T00:30,LOW,,-1.9,-6,-6,,2026-11-08T21:00:10.426140
+te_aud_20261111_investment_lending_for_homes,AUD,au,Investment Lending for Homes,,2026-11-11,12:30 AM,04:00 AM,2026-11-11T00:30,LOW,,-10.2,-14,-14,,2026-11-08T21:00:10.436914
+te_jpy_20261111_machine_tool_orders_yoy,JPY,jp,Machine Tool Orders YoY,,2026-11-11,06:00 AM,09:30 AM,2026-11-11T06:00,LOW,,60.4,54.5,54.5,,2026-11-08T21:00:10.442087
+te_eur_20261111_harmonised_inflation_rate_mom_final,EUR,ea,Harmonised Inflation Rate MoM Final,CPI MoM,2026-11-11,07:00 AM,10:30 AM,2026-11-11T07:00,HIGH,,0.6,-0.1,-0.1,,2026-11-08T21:00:10.446087
+te_eur_20261111_harmonised_inflation_rate_yoy_final,EUR,ea,Harmonised Inflation Rate YoY Final,CPI YoY,2026-11-11,07:00 AM,10:30 AM,2026-11-11T07:00,HIGH,,3.3,2.8,2.8,,2026-11-08T21:00:10.449156
+te_eur_20261111_inflation_rate_mom_final,EUR,ea,Inflation Rate MoM Final,CPI MoM,2026-11-11,07:00 AM,10:30 AM,2026-11-11T07:00,HIGH,,0.6,-0.2,-0.2,,2026-11-08T21:00:10.452165
+te_eur_20261111_inflation_rate_yoy_final,EUR,ea,Inflation Rate YoY Final,CPI YoY,2026-11-11,07:00 AM,10:30 AM,2026-11-11T07:00,HIGH,,3.3,2.8,2.8,,2026-11-08T21:00:10.455172
+te_eur_20261111_ecb_cipollone_speech,EUR,ea,ECB Cipollone Speech,,2026-11-11,07:50 AM,11:20 AM,2026-11-11T07:50,HIGH,,,,,,2026-11-08T21:00:10.459685
+te_eur_20261111_industrial_production_mom,EUR,ea,Industrial Production MoM,Industrial Production YoY,2026-11-11,09:00 AM,12:30 PM,2026-11-11T09:00,MED,,-1.3,0.7,0.3,,2026-11-08T21:00:10.462688
+te_eur_20261111_industrial_production_yoy,EUR,ea,Industrial Production YoY,Industrial Production YoY,2026-11-11,09:00 AM,12:30 PM,2026-11-11T09:00,MED,,0,0.9,0.9,,2026-11-08T21:00:10.485530
+te_eur_20261111_ecb_president_lagarde_speech,EUR,ea,ECB President Lagarde Speech,,2026-11-11,09:45 AM,01:15 PM,2026-11-11T09:45,HIGH,,,,,,2026-11-08T21:00:10.490047
+te_eur_20261111_12_month_bot_auction,EUR,ea,12-Month BOT Auction,,2026-11-11,10:10 AM,01:40 PM,2026-11-11T10:10,LOW,,3.175,3.175,3.175,,2026-11-08T21:00:10.494054
+te_eur_20261111_20_year_bund_auction,EUR,ea,20-Year Bund Auction,,2026-11-11,10:30 AM,02:00 PM,2026-11-11T10:30,LOW,,3.8,3.8,3.8,,2026-11-08T21:00:10.497054
+te_eur_20261111_30_year_bund_auction,EUR,ea,30-Year Bund Auction,,2026-11-11,10:30 AM,02:00 PM,2026-11-11T10:30,LOW,,3.67,3.67,3.67,,2026-11-08T21:00:10.501127
+te_usd_20261111_mba_30_year_mortgage_rate,USD,us,MBA 30-Year Mortgage Rate,,2026-11-11,12:00 PM,03:30 PM,2026-11-11T12:00,LOW,,7.3,7.3,7.3,,2026-11-08T21:00:10.505127
+te_usd_20261111_mba_mortgage_applications,USD,us,MBA Mortgage Applications,,2026-11-11,12:00 PM,03:30 PM,2026-11-11T12:00,LOW,,-1.2,-1.2,-1.2,,2026-11-08T21:00:10.510214
+te_usd_20261111_mba_mortgage_market_index,USD,us,MBA Mortgage Market Index,,2026-11-11,12:00 PM,03:30 PM,2026-11-11T12:00,LOW,,192.6,192.6,192.6,,2026-11-08T21:00:10.513227
+te_usd_20261111_mba_mortgage_refinance_index,USD,us,MBA Mortgage Refinance Index,,2026-11-11,12:00 PM,03:30 PM,2026-11-11T12:00,LOW,,517.5,517.5,517.5,,2026-11-08T21:00:10.516228
+te_usd_20261111_mba_purchase_index,USD,us,MBA Purchase Index,,2026-11-11,12:00 PM,03:30 PM,2026-11-11T12:00,LOW,,131.4,131.4,131.4,,2026-11-08T21:00:10.519748
+te_aud_20261111_rba_baker_speech,AUD,au,RBA Baker Speech,,2026-11-11,11:30 PM,03:00 AM,2026-11-11T23:30,LOW,,,,,,2026-11-08T21:00:10.523264
+te_jpy_20261111_foreign_bond_investment,JPY,jp,Foreign Bond Investment,,2026-11-11,11:50 PM,03:20 AM,2026-11-11T23:50,LOW,,1312,1312,1312,,2026-11-08T21:00:10.526266
+te_jpy_20261111_ppi_mom,JPY,jp,PPI MoM,PPI MoM,2026-11-11,11:50 PM,03:20 AM,2026-11-11T23:50,MED,,-0.3,0.3,0.4,,2026-11-08T21:00:10.528795
+te_jpy_20261111_ppi_yoy,JPY,jp,PPI YoY,PPI YoY,2026-11-11,11:50 PM,03:20 AM,2026-11-11T23:50,MED,,6.8,6.5,6.7,,2026-11-08T21:00:10.530806
+te_jpy_20261111_stock_investment_by_foreigners,JPY,jp,Stock Investment by Foreigners,,2026-11-11,11:50 PM,03:20 AM,2026-11-11T23:50,LOW,,1129.3,1129.3,1129.3,,2026-11-08T21:00:10.534827
+te_aud_20261112_consumer_inflation_expectations,AUD,au,Consumer Inflation Expectations,Inflation Expectations,2026-11-12,12:00 AM,03:30 AM,2026-11-12T00:00,HIGH,,5.3,5.4,5.4,,2026-11-08T21:00:10.536830
+te_gbp_20261112_rics_house_price_balance,GBP,gb,RICS House Price Balance,House Price Index YoY,2026-11-12,12:01 AM,03:31 AM,2026-11-12T00:01,MED,,-32,-32,-34,,2026-11-08T21:00:10.539320
+te_jpy_20261112_boj_asada_speech,JPY,jp,BOJ Asada Speech,,2026-11-12,01:30 AM,05:00 AM,2026-11-12T01:30,HIGH,,,,,,2026-11-08T21:00:10.543355
+te_jpy_20261112_5_year_jgb_auction,JPY,jp,5-Year JGB Auction,,2026-11-12,03:35 AM,07:05 AM,2026-11-12T03:35,LOW,,2.379,2.379,2.379,,2026-11-08T21:00:10.546896
+te_gbp_20261112_gdp_growth_rate_qoq_prel,GBP,gb,GDP Growth Rate QoQ Prel,GDP Growth QoQ,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,0.5,0.7,0.6,,2026-11-08T21:00:10.550388
+te_gbp_20261112_gdp_growth_rate_yoy_prel,GBP,gb,GDP Growth Rate YoY Prel,GDP Growth QoQ,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,1.4,1.9,1.8,,2026-11-08T21:00:10.552395
+te_gbp_20261112_gdp_mom,GBP,gb,GDP MoM,GDP Growth YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,0.1,0,0,,2026-11-08T21:00:10.555396
+te_gbp_20261112_business_investment_qoq_prel,GBP,gb,Business Investment QoQ Prel,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,1.8,-0.2,-0.3,,2026-11-08T21:00:10.559941
+te_gbp_20261112_gdp_3_month_avg,GBP,gb,GDP 3-Month Avg,GDP Growth YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,0.7,0.7,0.6,,2026-11-08T21:00:10.562965
+te_gbp_20261112_goods_trade_balance,GBP,gb,Goods Trade Balance,Balance of Trade,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,-18.01,-19.2,-18.7,,2026-11-08T21:00:10.564941
+te_gbp_20261112_goods_trade_balance_non_eu,GBP,gb,Goods Trade Balance Non-EU,Balance of Trade,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,-5.29,-8.8,-5.7,,2026-11-08T21:00:10.567937
+te_gbp_20261112_industrial_production_mom,GBP,gb,Industrial Production MoM,Industrial Production YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,MED,,0.8,-0.3,-0.2,,2026-11-08T21:00:10.570980
+te_gbp_20261112_manufacturing_production_mom,GBP,gb,Manufacturing Production MoM,Industrial Production YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,MED,,1.2,-0.5,-0.3,,2026-11-08T21:00:10.573981
+te_gbp_20261112_balance_of_trade,GBP,gb,Balance of Trade,Balance of Trade,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,-0.92,-1.6,-1.6,,2026-11-08T21:00:10.576002
+te_gbp_20261112_business_investment_yoy_prel,GBP,gb,Business Investment YoY Prel,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,5.2,3,4.4,,2026-11-08T21:00:10.579129
+te_gbp_20261112_construction_orders_yoy,GBP,gb,Construction Orders YoY,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,-18.1,-20,-20,,2026-11-08T21:00:10.583138
+te_gbp_20261112_construction_output_mom,GBP,gb,Construction Output MoM,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,-0.2,-0.1,0,,2026-11-08T21:00:10.585676
+te_gbp_20261112_construction_output_yoy,GBP,gb,Construction Output YoY,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,-1.8,-2.1,-2.4,,2026-11-08T21:00:10.589153
+te_gbp_20261112_gdp_yoy,GBP,gb,GDP YoY,GDP Growth YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,HIGH,,2.1,1.9,1.9,,2026-11-08T21:00:10.593189
+te_gbp_20261112_industrial_production_yoy,GBP,gb,Industrial Production YoY,Industrial Production YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,MED,,1.6,3,3.2,,2026-11-08T21:00:10.596185
+te_gbp_20261112_manufacturing_production_yoy,GBP,gb,Manufacturing Production YoY,Industrial Production YoY,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,MED,,3,3.8,4,,2026-11-08T21:00:10.599738
+te_gbp_20261112_services_output_mom,GBP,gb,Services Output MoM,,2026-11-12,07:00 AM,10:30 AM,2026-11-12T07:00,LOW,,0.9,0.9,0.1,,2026-11-08T21:00:10.603241
+te_eur_20261112_ecb_economic_bulletin,EUR,ea,ECB Economic Bulletin,,2026-11-12,09:00 AM,12:30 PM,2026-11-12T09:00,HIGH,,,,,,2026-11-08T21:00:10.607246
+te_cad_20261112_building_permits_mom,CAD,ca,Building Permits MoM,Building Permits MoM,2026-11-12,01:30 PM,05:00 PM,2026-11-12T13:30,MED,,8.8,-3.9,1,,2026-11-08T21:00:10.610787
+te_eur_20261112_current_account,EUR,ea,Current Account,Current Account to GDP,2026-11-12,01:30 PM,05:00 PM,2026-11-12T13:30,HIGH,,10.3,15.5,15.5,,2026-11-08T21:00:10.612787
+te_usd_20261112_initial_jobless_claims,USD,us,Initial Jobless Claims,Job Vacancies,2026-11-12,01:30 PM,05:00 PM,2026-11-12T13:30,MED,,189,195,191,,2026-11-08T21:00:10.615787
+te_usd_20261112_continuing_jobless_claims,USD,us,Continuing Jobless Claims,,2026-11-12,01:30 PM,05:00 PM,2026-11-12T13:30,LOW,,1718,1720,1722,,2026-11-08T21:00:10.617813
+te_usd_20261112_jobless_claims_4_week_average,USD,us,Jobless Claims 4-week Average,,2026-11-12,01:30 PM,05:00 PM,2026-11-12T13:30,LOW,,194.75,192.5,192.5,,2026-11-08T21:00:10.620376
+te_usd_20261112_fed_hammack_speech,USD,us,Fed Hammack Speech,,2026-11-12,02:00 PM,05:30 PM,2026-11-12T14:00,LOW,,,,,,2026-11-08T21:00:10.623336
+te_usd_20261112_existing_home_sales,USD,us,Existing Home Sales,,2026-11-12,03:00 PM,06:30 PM,2026-11-12T15:00,LOW,,3.99,3.98,4,,2026-11-08T21:00:10.626336
+te_usd_20261112_existing_home_sales_mom,USD,us,Existing Home Sales MoM,,2026-11-12,03:00 PM,06:30 PM,2026-11-12T15:00,LOW,,1.5,0.3,0.3,,2026-11-08T21:00:10.627362
+te_usd_20261112_fed_barr_speech,USD,us,Fed Barr Speech,,2026-11-12,03:00 PM,06:30 PM,2026-11-12T15:00,LOW,,,,,,2026-11-08T21:00:10.629938
+te_eur_20261112_ecb_vuj_i_speech,EUR,ea,ECB Vujčić Speech,,2026-11-12,03:30 PM,07:00 PM,2026-11-12T15:30,HIGH,,,,,,2026-11-08T21:00:10.636353
+te_usd_20261112_fed_goolsbee_speech,USD,us,Fed Goolsbee Speech,,2026-11-12,04:30 PM,08:00 PM,2026-11-12T16:30,LOW,,,,,,2026-11-08T21:00:10.641897
+te_usd_20261112_17_week_bill_auction,USD,us,17-Week Bill Auction,,2026-11-12,04:30 PM,08:00 PM,2026-11-12T16:30,LOW,,4.09,4.09,4.09,,2026-11-08T21:00:10.645919
+te_usd_20261112_4_week_bill_auction,USD,us,4-Week Bill Auction,,2026-11-12,04:30 PM,08:00 PM,2026-11-12T16:30,LOW,,3.89,3.89,3.89,,2026-11-08T21:00:10.649401
+te_usd_20261112_8_week_bill_auction,USD,us,8-Week Bill Auction,,2026-11-12,04:30 PM,08:00 PM,2026-11-12T16:30,LOW,,3.975,3.975,3.975,,2026-11-08T21:00:10.653410
+te_cad_20261112_2_year_bond_auction,CAD,ca,2-Year Bond Auction,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,3.31,3.31,3.31,,2026-11-08T21:00:10.657406
+te_usd_20261112_eia_crude_oil_stocks_change,USD,us,EIA Crude Oil Stocks Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,-0.865,-0.865,-0.865,,2026-11-08T21:00:10.660950
+te_usd_20261112_eia_gasoline_stocks_change,USD,us,EIA Gasoline Stocks Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,-0.222,-0.222,-0.222,,2026-11-08T21:00:10.663951
+te_usd_20261112_15_year_mortgage_rate,USD,us,15-Year Mortgage Rate,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,6.57,6.57,6.57,,2026-11-08T21:00:10.670144
+te_usd_20261112_30_year_mortgage_rate,USD,us,30-Year Mortgage Rate,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,7.18,7.18,7.18,,2026-11-08T21:00:10.674146
+te_usd_20261112_eia_crude_oil_imports_change,USD,us,EIA Crude Oil Imports Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,MED,,1.179,1.179,1.179,,2026-11-08T21:00:10.678664
+te_usd_20261112_eia_cushing_crude_oil_stocks_change,USD,us,EIA Cushing Crude Oil Stocks Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,0.28,0.28,0.28,,2026-11-08T21:00:10.681675
+te_usd_20261112_eia_distillate_fuel_production_change,USD,us,EIA Distillate Fuel Production Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,-0.007,-0.007,-0.007,,2026-11-08T21:00:10.686187
+te_usd_20261112_eia_distillate_stocks_change,USD,us,EIA Distillate Stocks Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,-3.565,-3.565,-3.565,,2026-11-08T21:00:10.688722
+te_usd_20261112_eia_gasoline_production_change,USD,us,EIA Gasoline Production Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,0.463,0.463,0.463,,2026-11-08T21:00:10.691770
+te_usd_20261112_eia_heating_oil_stocks_change,USD,us,EIA Heating Oil Stocks Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,-0.203,-0.203,-0.203,,2026-11-08T21:00:10.695767
+te_usd_20261112_eia_refinery_crude_runs_change,USD,us,EIA Refinery Crude Runs Change,,2026-11-12,05:00 PM,08:30 PM,2026-11-12T17:00,LOW,,0.199,0.199,0.199,,2026-11-08T21:00:10.698851
+te_usd_20261112_30_year_bond_auction,USD,us,30-Year Bond Auction,,2026-11-12,06:00 PM,09:30 PM,2026-11-12T18:00,LOW,,5.618,5.618,5.618,,2026-11-08T21:00:10.702106
+te_usd_20261112_fed_daly_speech,USD,us,Fed Daly Speech,,2026-11-12,06:10 PM,09:40 PM,2026-11-12T18:10,LOW,,,,,,2026-11-08T21:00:10.706131
+te_usd_20261112_monthly_budget_statement,USD,us,Monthly Budget Statement,,2026-11-12,07:00 PM,10:30 PM,2026-11-12T19:00,LOW,,-27,-298,-298,,2026-11-08T21:00:10.709668
+te_eur_20261112_ecb_president_lagarde_speech,EUR,ea,ECB President Lagarde Speech,,2026-11-12,07:30 PM,11:00 PM,2026-11-12T19:30,HIGH,,,,,,2026-11-08T21:00:10.713689
+te_usd_20261112_fed_balance_sheet,USD,us,Fed Balance Sheet,CB Balance Sheet YoY,2026-11-12,09:30 PM,01:00 AM,2026-11-12T21:30,MED,,11,,,,2026-11-08T21:00:10.716663
+te_usd_20261112_reserve_balances_with_fed_banks,USD,us,Reserve Balances with Fed Banks,,2026-11-12,09:30 PM,01:00 AM,2026-11-12T21:30,LOW,,2.963,2.963,2.963,,2026-11-08T21:00:10.721178
+te_usd_20261112_fed_williams_speech,USD,us,Fed Williams Speech,,2026-11-12,11:30 PM,03:00 AM,2026-11-12T23:30,LOW,,,,,,2026-11-08T21:00:10.724176
+te_jpy_20261113_3_month_bill_auction,JPY,jp,3-Month Bill Auction,,2026-11-13,03:35 AM,07:05 AM,2026-11-13T03:35,LOW,,1.241,1.241,1.241,,2026-11-08T21:00:10.728716
+te_eur_20261113_ecb_elderson_speech,EUR,ea,ECB Elderson Speech,,2026-11-13,06:50 AM,10:20 AM,2026-11-13T06:50,HIGH,,,,,,2026-11-08T21:00:10.731228
+te_eur_20261113_wholesale_prices_mom,EUR,ea,Wholesale Prices MoM,,2026-11-13,07:00 AM,10:30 AM,2026-11-13T07:00,LOW,,1.9,0.4,0.7,,2026-11-08T21:00:10.735265
+te_eur_20261113_wholesale_prices_yoy,EUR,ea,Wholesale Prices YoY,,2026-11-13,07:00 AM,10:30 AM,2026-11-13T07:00,LOW,,8.7,9.1,9.1,,2026-11-08T21:00:10.737227
+te_eur_20261113_ecb_schnabel_speech,EUR,ea,ECB Schnabel Speech,,2026-11-13,07:10 AM,10:40 AM,2026-11-13T07:10,HIGH,,,,,,2026-11-08T21:00:10.740771
+te_eur_20261113_harmonised_inflation_rate_mom_final,EUR,ea,Harmonised Inflation Rate MoM Final,CPI MoM,2026-11-13,08:00 AM,11:30 AM,2026-11-13T08:00,HIGH,,0.6,0.5,0.5,,2026-11-08T21:00:10.742769
+te_eur_20261113_harmonised_inflation_rate_yoy_final,EUR,ea,Harmonised Inflation Rate YoY Final,CPI YoY,2026-11-13,08:00 AM,11:30 AM,2026-11-13T08:00,HIGH,,5,4.9,4.9,,2026-11-08T21:00:10.744781
+te_eur_20261113_inflation_rate_mom_final,EUR,ea,Inflation Rate MoM Final,CPI MoM,2026-11-13,08:00 AM,11:30 AM,2026-11-13T08:00,HIGH,,0.3,0.6,0.6,,2026-11-08T21:00:10.746805
+te_eur_20261113_inflation_rate_yoy_final,EUR,ea,Inflation Rate YoY Final,CPI YoY,2026-11-13,08:00 AM,11:30 AM,2026-11-13T08:00,HIGH,,4.9,4.9,4.9,,2026-11-08T21:00:10.748769
+te_eur_20261113_core_inflation_rate_yoy_final,EUR,ea,Core Inflation Rate YoY Final,Core CPI,2026-11-13,08:00 AM,11:30 AM,2026-11-13T08:00,HIGH,,3.1,3.1,3.1,,2026-11-08T21:00:10.750282
+te_eur_20261113_balance_of_trade,EUR,ea,Balance of Trade,Balance of Trade,2026-11-13,10:00 AM,01:30 PM,2026-11-13T10:00,HIGH,,-16.1,-4.5,11.5,,2026-11-08T21:00:10.764803
+te_eur_20261113_employment_change_qoq_prel,EUR,ea,Employment Change QoQ Prel,Employment Change,2026-11-13,10:00 AM,01:30 PM,2026-11-13T10:00,HIGH,,0.1,0.2,0,,2026-11-08T21:00:10.770943
+te_eur_20261113_employment_change_yoy_prel,EUR,ea,Employment Change YoY Prel,Employment Change,2026-11-13,10:00 AM,01:30 PM,2026-11-13T10:00,HIGH,,0.5,0.3,0.3,,2026-11-08T21:00:10.773448
+te_eur_20261113_gdp_growth_rate_qoq_2nd_est,EUR,ea,GDP Growth Rate QoQ 2nd Est,GDP Growth QoQ,2026-11-13,10:00 AM,01:30 PM,2026-11-13T10:00,HIGH,,0.6,0.4,0.4,,2026-11-08T21:00:10.775456
+te_eur_20261113_gdp_growth_rate_yoy_2nd_est,EUR,ea,GDP Growth Rate YoY 2nd Est,GDP Growth QoQ,2026-11-13,10:00 AM,01:30 PM,2026-11-13T10:00,HIGH,,1.2,1.3,1.3,,2026-11-08T21:00:10.777484
+te_cad_20261113_capacity_utilization,CAD,ca,Capacity Utilization,Capacity Utilization,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,81.9,82,82,,2026-11-08T21:00:10.779996
+te_cad_20261113_manufacturing_sales_mom_final,CAD,ca,Manufacturing Sales MoM Final,,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,LOW,,1.5,0.1,0.1,,2026-11-08T21:00:10.781995
+te_cad_20261113_wholesale_sales_mom_final,CAD,ca,Wholesale Sales MoM Final,,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,LOW,,-1.6,0.5,0.5,,2026-11-08T21:00:10.785535
+te_usd_20261113_ppi_mom,USD,us,PPI MoM,PPI MoM,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,1.3,0.4,0.3,,2026-11-08T21:00:10.787541
+te_usd_20261113_core_ppi_mom,USD,us,Core PPI MoM,PPI MoM,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,0.7,0.3,0.3,,2026-11-08T21:00:10.789024
+te_usd_20261113_core_ppi_yoy,USD,us,Core PPI YoY,PPI YoY,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,5,5,4.9,,2026-11-08T21:00:10.791032
+te_usd_20261113_ppi,USD,us,PPI,PPI YoY,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,159.78,160,160,,2026-11-08T21:00:10.792032
+te_usd_20261113_ppi_ex_food_energy_and_trade_mom,USD,us,"PPI Ex Food, Energy and Trade MoM",PPI MoM,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,0.5,0.4,0.3,,2026-11-08T21:00:10.794031
+te_usd_20261113_ppi_ex_food_energy_and_trade_yoy,USD,us,"PPI Ex Food, Energy and Trade YoY",PPI YoY,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,5,5,5,,2026-11-08T21:00:10.795037
+te_usd_20261113_ppi_yoy,USD,us,PPI YoY,PPI YoY,2026-11-13,01:30 PM,05:00 PM,2026-11-13T13:30,MED,,6.3,6.6,6.5,,2026-11-08T21:00:10.797033
+te_usd_20261113_eia_natural_gas_stocks_change,USD,us,EIA Natural Gas Stocks Change,,2026-11-13,03:30 PM,07:00 PM,2026-11-13T15:30,LOW,,77,77,77,,2026-11-08T21:00:10.801118
+te_usd_20261113_fed_bowman_speech,USD,us,Fed Bowman Speech,,2026-11-13,03:50 PM,07:20 PM,2026-11-13T15:50,LOW,,,,,,2026-11-08T21:00:10.804114
+te_usd_20261113_fed_daly_speech,USD,us,Fed Daly Speech,,2026-11-13,05:00 PM,08:30 PM,2026-11-13T17:00,LOW,,,,,,2026-11-08T21:00:10.808625
+te_usd_20261113_baker_hughes_oil_rig_count,USD,us,Baker Hughes Oil Rig Count,,2026-11-13,06:00 PM,09:30 PM,2026-11-13T18:00,LOW,,463,463,463,,2026-11-08T21:00:10.811169
+te_usd_20261113_baker_hughes_total_rigs_count,USD,us,Baker Hughes Total Rigs Count,,2026-11-13,06:00 PM,09:30 PM,2026-11-13T18:00,LOW,,604,604,604,,2026-11-08T21:00:10.814169
+te_usd_20261114_fed_jefferson_speech,USD,us,Fed Jefferson Speech,,2026-11-14,12:00 AM,03:30 AM,2026-11-14T00:00,LOW,,,,,,2026-11-08T21:00:10.819688
+te_jpy_20261115_gdp_growth_rate_qoq_prel,JPY,jp,GDP Growth Rate QoQ Prel,GDP Growth QoQ,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,0.4,0.1,0.1,,2026-11-08T21:00:10.826915
+te_jpy_20261115_gdp_growth_annualized_prel,JPY,jp,GDP Growth Annualized Prel,GDP Growth QoQ,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,1.4,0.3,0.2,,2026-11-08T21:00:10.829969
+te_jpy_20261115_gdp_capital_expenditure_qoq_prel,JPY,jp,GDP Capital Expenditure QoQ Prel,GDP Growth YoY,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,-0.9,1.5,-1,,2026-11-08T21:00:10.832970
+te_jpy_20261115_gdp_external_demand_qoq_prel,JPY,jp,GDP External Demand QoQ Prel,GDP Growth YoY,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,0.5,-0.4,0.3,,2026-11-08T21:00:10.834973
+te_jpy_20261115_gdp_price_index_yoy_prel,JPY,jp,GDP Price Index YoY Prel,GDP Growth YoY,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,2.6,2.1,2.1,,2026-11-08T21:00:10.836971
+te_jpy_20261115_gdp_private_consumption_qoq_prel,JPY,jp,GDP Private Consumption QoQ Prel,GDP Growth YoY,2026-11-15,11:50 PM,03:20 AM,2026-11-15T23:50,HIGH,,0,-0.2,-0.2,,2026-11-08T21:00:10.839033
+te_jpy_20261116_capacity_utilization_mom,JPY,jp,Capacity Utilization MoM,Capacity Utilization,2026-11-16,04:30 AM,08:00 AM,2026-11-16T04:30,MED,,-4.2,-4.2,-4.2,,2026-11-08T21:00:10.841836
+te_jpy_20261116_industrial_production_mom_final,JPY,jp,Industrial Production MoM Final,Industrial Production YoY,2026-11-16,04:30 AM,08:00 AM,2026-11-16T04:30,MED,,-2.4,2.2,2.2,,2026-11-08T21:00:10.844947
+te_jpy_20261116_industrial_production_yoy_final,JPY,jp,Industrial Production YoY Final,Industrial Production YoY,2026-11-16,04:30 AM,08:00 AM,2026-11-16T04:30,MED,,2.7,1.9,1.9,,2026-11-08T21:00:10.849117
+te_eur_20261116_industrial_production_mom,EUR,ea,Industrial Production MoM,Industrial Production YoY,2026-11-16,10:00 AM,01:30 PM,2026-11-16T10:00,MED,,-0.5,-0.4,-0.4,,2026-11-08T21:00:10.852199
+te_eur_20261116_industrial_production_yoy,EUR,ea,Industrial Production YoY,Industrial Production YoY,2026-11-16,10:00 AM,01:30 PM,2026-11-16T10:00,MED,,-1.1,-0.6,-0.6,,2026-11-08T21:00:10.853748
+te_eur_20261116_12_month_bubill_auction,EUR,ea,12-Month Bubill Auction,,2026-11-16,10:30 AM,02:00 PM,2026-11-16T10:30,LOW,,2.949,2.949,2.949,,2026-11-08T21:00:10.859012
+te_cad_20261116_inflation_rate_yoy,CAD,ca,Inflation Rate YoY,CPI YoY,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,3.1,3.1,3.1,,2026-11-08T21:00:10.863121
+te_cad_20261116_core_inflation_rate_yoy,CAD,ca,Core Inflation Rate YoY,Core CPI,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,2.2,2.2,2.2,,2026-11-08T21:00:10.864673
+te_cad_20261116_inflation_rate_mom,CAD,ca,Inflation Rate MoM,CPI MoM,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,0.1,0.1,0.1,,2026-11-08T21:00:10.866228
+te_cad_20261116_core_inflation_rate_mom,CAD,ca,Core Inflation Rate MoM,Core Inflation MoM,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,0,0,0,,2026-11-08T21:00:10.868774
+te_cad_20261116_cpi_common_yoy,CAD,ca,CPI Common YoY,CPI YoY,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,2.4,2.4,2.4,,2026-11-08T21:00:10.869279
+te_cad_20261116_cpi_median_yoy,CAD,ca,CPI Median YoY,CPI YoY,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,1.9,1.9,1.9,,2026-11-08T21:00:10.870826
+te_cad_20261116_cpi_trimmed_mean_yoy,CAD,ca,CPI Trimmed-Mean YoY,CPI YoY,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,HIGH,,1.8,1.8,1.8,,2026-11-08T21:00:10.874006
+te_usd_20261116_ny_empire_state_manufacturing_index,USD,us,NY Empire State Manufacturing Index,,2026-11-16,01:30 PM,05:00 PM,2026-11-16T13:30,LOW,,25.5,25.5,10,,2026-11-08T21:00:10.877096
+te_eur_20261116_12_month_btf_auction,EUR,ea,12-Month BTF Auction,,2026-11-16,02:00 PM,05:30 PM,2026-11-16T14:00,LOW,,,,,,2026-11-08T21:00:10.880185
+te_eur_20261116_3_month_btf_auction,EUR,ea,3-Month BTF Auction,,2026-11-16,02:00 PM,05:30 PM,2026-11-16T14:00,LOW,,,,,,2026-11-08T21:00:10.884475
+te_eur_20261116_6_month_btf_auction,EUR,ea,6-Month BTF Auction,,2026-11-16,02:00 PM,05:30 PM,2026-11-16T14:00,LOW,,2.994,2.994,2.994,,2026-11-08T21:00:10.887476
+te_usd_20261116_3_month_bill_auction,USD,us,3-Month Bill Auction,,2026-11-16,04:30 PM,08:00 PM,2026-11-16T16:30,LOW,,4.06,4.0999,4.0999,,2026-11-08T21:00:10.889988
+te_usd_20261116_6_month_bill_auction,USD,us,6-Month Bill Auction,,2026-11-16,04:30 PM,08:00 PM,2026-11-16T16:30,LOW,,4.145,4.145,4.145,,2026-11-08T21:00:10.892998
+te_eur_20261116_6_month_bubill_auction,EUR,ea,6-Month Bubill Auction,,2026-11-16,00:00,03:30 AM,2026-11-16T00:00,LOW,,2.717,2.717,2.717,,2026-11-08T21:00:10.897024
+te_aud_20261117_rba_meeting_minutes,AUD,au,RBA Meeting Minutes,,2026-11-17,12:30 AM,04:00 AM,2026-11-17T00:30,LOW,,,,,,2026-11-08T21:00:10.900157
+te_jpy_20261117_tertiary_industry_index_mom,JPY,jp,Tertiary Industry Index MoM,,2026-11-17,04:30 AM,08:00 AM,2026-11-17T04:30,LOW,,-0.1,-0.1,-0.1,,2026-11-08T21:00:10.903157
+te_gbp_20261117_unemployment_rate,GBP,gb,Unemployment Rate,Unemployment Rate,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,HIGH,,4.7,4.9,4.9,,2026-11-08T21:00:10.905155
+te_gbp_20261117_average_earnings_incl_bonus_3mo_yr_,GBP,gb,Average Earnings incl. Bonus (3Mo/Yr),Wage Growth YoY,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,MED,,3.7,3.7,3.7,,2026-11-08T21:00:10.908660
+te_gbp_20261117_employment_change,GBP,gb,Employment Change,Employment Change,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,HIGH,,102,25,25,,2026-11-08T21:00:10.910672
+te_gbp_20261117_average_earnings_excl_bonus_3mo_yr_,GBP,gb,Average Earnings excl. Bonus (3Mo/Yr),Wage Growth YoY,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,MED,,3.7,2.9,2.9,,2026-11-08T21:00:10.912667
+te_gbp_20261117_claimant_count_change,GBP,gb,Claimant Count Change,Employment Change,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,HIGH,,30.3,20,20,,2026-11-08T21:00:10.914668
+te_gbp_20261117_hmrc_payrolls_change,GBP,gb,HMRC Payrolls Change,Employment Change,2026-11-17,07:00 AM,10:30 AM,2026-11-17T07:00,HIGH,,13,15,15,,2026-11-08T21:00:10.916671
+te_eur_20261117_harmonised_inflation_rate_mom_final,EUR,ea,Harmonised Inflation Rate MoM Final,CPI MoM,2026-11-17,09:00 AM,12:30 PM,2026-11-17T09:00,HIGH,,2.1,1.2,1.2,,2026-11-08T21:00:10.917668
+te_eur_20261117_harmonised_inflation_rate_yoy_final,EUR,ea,Harmonised Inflation Rate YoY Final,CPI YoY,2026-11-17,09:00 AM,12:30 PM,2026-11-17T09:00,HIGH,,4.2,5.6,5.6,,2026-11-08T21:00:10.919176
+te_eur_20261117_inflation_rate_mom_final,EUR,ea,Inflation Rate MoM Final,CPI MoM,2026-11-17,09:00 AM,12:30 PM,2026-11-17T09:00,HIGH,,0.7,0.9,0.9,,2026-11-08T21:00:10.921182
+te_eur_20261117_inflation_rate_yoy_final,EUR,ea,Inflation Rate YoY Final,CPI YoY,2026-11-17,09:00 AM,12:30 PM,2026-11-17T09:00,HIGH,,4.2,5.4,5.4,,2026-11-08T21:00:10.922182
+te_eur_20261117_balance_of_trade,EUR,ea,Balance of Trade,Balance of Trade,2026-11-17,09:00 AM,12:30 PM,2026-11-17T09:00,HIGH,,-5.98,-4.5,-4.5,,2026-11-08T21:00:10.925180
+te_gbp_20261117_labour_productivity_qoq,GBP,gb,Labour Productivity QoQ,,2026-11-17,09:30 AM,01:00 PM,2026-11-17T09:30,LOW,,-0.8,0.3,0.3,,2026-11-08T21:00:10.928687
+te_eur_20261117_zew_economic_sentiment_index,EUR,ea,ZEW Economic Sentiment Index,Business Confidence,2026-11-17,10:00 AM,01:30 PM,2026-11-17T10:00,MED,,28.1,14,15.9,,2026-11-08T21:00:10.930697
+te_eur_20261117_zew_current_conditions,EUR,ea,ZEW Current Conditions,,2026-11-17,10:00 AM,01:30 PM,2026-11-17T10:00,MED,,-35.9,-36,-36,,2026-11-08T21:00:10.936698
+te_eur_20261117_2_year_schatz_auction,EUR,ea,2-Year Schatz Auction,,2026-11-17,10:30 AM,02:00 PM,2026-11-17T10:30,LOW,,3.08,3.08,3.08,,2026-11-08T21:00:10.940215
+te_cad_20261117_housing_starts,CAD,ca,Housing Starts,Building Permits MoM,2026-11-17,01:15 PM,04:45 PM,2026-11-17T13:15,MED,,250,250,250,,2026-11-08T21:00:10.942215
+te_usd_20261117_adp_employment_change_weekly,USD,us,ADP Employment Change Weekly,Employment Change,2026-11-17,01:15 PM,04:45 PM,2026-11-17T13:15,HIGH,,19.75,19.75,19.75,,2026-11-08T21:00:10.945221
+te_cad_20261117_foreign_securities_purchases,CAD,ca,Foreign Securities Purchases,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,-17.31,27.9,27.9,,2026-11-08T21:00:10.947215
+te_cad_20261117_foreign_securities_purchases_by_canadians,CAD,ca,Foreign Securities Purchases by Canadians,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,23.9,23.9,23.9,,2026-11-08T21:00:10.949734
+te_cad_20261117_new_motor_vehicle_sales,CAD,ca,New Motor Vehicle Sales,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,174.6,169,169,,2026-11-08T21:00:10.952974
+te_usd_20261117_retail_sales_mom,USD,us,Retail Sales MoM,Retail Sales MoM,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,HIGH,,0.8,0.8,0.8,,2026-11-08T21:00:10.954509
+te_usd_20261117_export_prices_mom,USD,us,Export Prices MoM,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,2.2,2.2,1.4,,2026-11-08T21:00:10.957598
+te_usd_20261117_import_prices_mom,USD,us,Import Prices MoM,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,1.1,1.1,1.1,,2026-11-08T21:00:10.959115
+te_usd_20261117_retail_sales_control_group_mom,USD,us,Retail Sales Control Group MoM,Retail Sales MoM,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,HIGH,,0.1,0.1,0.1,,2026-11-08T21:00:10.960655
+te_usd_20261117_retail_sales_ex_autos_mom,USD,us,Retail Sales Ex Autos MoM,Retail Sales MoM,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,HIGH,,0.9,0.9,0.9,,2026-11-08T21:00:10.963205
+te_usd_20261117_export_prices_yoy,USD,us,Export Prices YoY,,2026-11-17,01:30 PM,03:30 AM,2026-11-17T00:00,LOW,,11.6,11.6,11.6,,2026-11-08T21:00:10.966210
+te_usd_20261117_import_prices_yoy,USD,us,Import Prices YoY,,2026-11-17,01:30 PM,03:30 AM,2026-11-17T00:00,LOW,,8.1,8.1,8.1,,2026-11-08T21:00:10.969729
+te_usd_20261117_ny_fed_services_activity_index,USD,us,NY Fed Services Activity Index,,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,LOW,,-20.7,-20.7,-20.7,,2026-11-08T21:00:10.972728
+te_usd_20261117_retail_sales_ex_gas_autos_mom,USD,us,Retail Sales Ex Gas/Autos MoM,Retail Sales MoM,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,HIGH,,0.2,0.2,0.2,,2026-11-08T21:00:10.975728
+te_usd_20261117_retail_sales_yoy,USD,us,Retail Sales YoY,Retail Sales YoY,2026-11-17,01:30 PM,05:00 PM,2026-11-17T13:30,HIGH,,6.3,6.3,6.3,,2026-11-08T21:00:10.977132
+te_usd_20261117_redbook_yoy,USD,us,Redbook YoY,,2026-11-17,01:55 PM,05:25 PM,2026-11-17T13:55,LOW,,10.1,10.1,10.1,,2026-11-08T21:00:10.980176
+te_usd_20261117_industrial_production_mom,USD,us,Industrial Production MoM,Industrial Production YoY,2026-11-17,02:15 PM,05:45 PM,2026-11-17T14:15,MED,,0.7,0.7,0.7,,2026-11-08T21:00:10.982177
+te_usd_20261117_capacity_utilization,USD,us,Capacity Utilization,Capacity Utilization,2026-11-17,02:15 PM,05:45 PM,2026-11-17T14:15,MED,,76.9,76.9,76.9,,2026-11-08T21:00:10.983177
+te_usd_20261117_industrial_production_yoy,USD,us,Industrial Production YoY,Industrial Production YoY,2026-11-17,02:15 PM,05:45 PM,2026-11-17T14:15,MED,,2.2,2.2,2.2,,2026-11-08T21:00:10.984213
+te_usd_20261117_manufacturing_production_mom,USD,us,Manufacturing Production MoM,Industrial Production YoY,2026-11-17,02:15 PM,05:45 PM,2026-11-17T14:15,MED,,0.3,0.3,0.3,,2026-11-08T21:00:10.986221
+te_usd_20261117_manufacturing_production_yoy,USD,us,Manufacturing Production YoY,Industrial Production YoY,2026-11-17,02:15 PM,05:45 PM,2026-11-17T14:15,MED,,1.1,1.1,1.1,,2026-11-08T21:00:10.987212
+te_usd_20261117_business_inventories_mom,USD,us,Business Inventories MoM,,2026-11-17,03:00 PM,06:30 PM,2026-11-17T15:00,LOW,,0.4,0.2,0.2,,2026-11-08T21:00:10.990735
+te_usd_20261117_nahb_housing_market_index,USD,us,NAHB Housing Market Index,,2026-11-17,03:00 PM,06:30 PM,2026-11-17T15:00,MED,,29,29,29,,2026-11-08T21:00:10.992758
+te_usd_20261117_retail_inventories_ex_autos_mom,USD,us,Retail Inventories Ex Autos MoM,,2026-11-17,03:00 PM,06:30 PM,2026-11-17T15:00,MED,,0.1,0.4,0.4,,2026-11-08T21:00:10.994733
+te_usd_20261117_api_crude_oil_stock_change,USD,us,API Crude Oil Stock Change,,2026-11-17,09:30 PM,01:00 AM,2026-11-17T21:30,LOW,,13,,,,2026-11-08T21:00:10.996738
+te_jpy_20261117_balance_of_trade,JPY,jp,Balance of Trade,Balance of Trade,2026-11-17,11:50 PM,03:20 AM,2026-11-17T23:50,HIGH,,-536.6,-536.6,-536.6,,2026-11-08T21:00:10.998739
+te_jpy_20261117_exports_yoy,JPY,jp,Exports YoY,,2026-11-17,11:50 PM,03:20 AM,2026-11-17T23:50,MED,,16.7,16.7,16.7,,2026-11-08T21:00:11.000882
+te_jpy_20261117_imports_yoy,JPY,jp,Imports YoY,,2026-11-17,11:50 PM,03:20 AM,2026-11-17T23:50,MED,,18.9,18.9,18.9,,2026-11-08T21:00:11.003880
+te_usd_20261117_atlanta_fed_gdpnow,USD,us,Atlanta Fed GDPNow,GDP Growth QoQ,2026-11-17,00:00,03:30 AM,2026-11-17T00:00,HIGH,,3.5,3.5,3.5,,2026-11-08T21:00:11.005880
+te_aud_20261118_westpac_leading_index_mom,AUD,au,Westpac Leading Index MoM,,2026-11-18,12:00 AM,03:30 AM,2026-11-18T00:00,MED,,-0.1,-0.2,-0.2,,2026-11-08T21:00:11.009953
+te_aud_20261118_wage_price_index_qoq,AUD,au,Wage Price Index QoQ,Wage Growth YoY,2026-11-18,12:30 AM,04:00 AM,2026-11-18T00:30,MED,,0.8,1,1,,2026-11-08T21:00:11.011949
+te_aud_20261118_wage_price_index_yoy,AUD,au,Wage Price Index YoY,Wage Growth YoY,2026-11-18,12:30 AM,04:00 AM,2026-11-18T00:30,MED,,3.2,3.4,3.4,,2026-11-08T21:00:11.014975
+te_jpy_20261118_20_year_jgb_auction,JPY,jp,20-Year JGB Auction,,2026-11-18,03:35 AM,07:05 AM,2026-11-18T03:35,LOW,,3.723,3.723,3.723,,2026-11-08T21:00:11.018459
+te_jpy_20261118_52_week_bill_auction,JPY,jp,52-Week Bill Auction,,2026-11-18,03:35 AM,07:05 AM,2026-11-18T03:35,LOW,,1.6229,1.6229,1.6229,,2026-11-08T21:00:11.022005
+te_gbp_20261118_inflation_rate_yoy,GBP,gb,Inflation Rate YoY,CPI YoY,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,HIGH,,3.5,3.5,3.5,,2026-11-08T21:00:11.023105
+te_gbp_20261118_core_inflation_rate_yoy,GBP,gb,Core Inflation Rate YoY,Core CPI,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,HIGH,,2.8,2.9,2.9,,2026-11-08T21:00:11.025105
+te_gbp_20261118_inflation_rate_mom,GBP,gb,Inflation Rate MoM,CPI MoM,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,HIGH,,0.4,0.4,0.4,,2026-11-08T21:00:11.027105
+te_gbp_20261118_core_inflation_rate_mom,GBP,gb,Core Inflation Rate MoM,Core Inflation MoM,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,HIGH,,0.2,0.3,0.3,,2026-11-08T21:00:11.029158
+te_gbp_20261118_ppi_core_output_mom,GBP,gb,PPI Core Output MoM,PPI MoM,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,0.2,0.2,0.2,,2026-11-08T21:00:11.031169
+te_gbp_20261118_ppi_core_output_yoy,GBP,gb,PPI Core Output YoY,PPI YoY,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,2.9,2.9,2.9,,2026-11-08T21:00:11.033165
+te_gbp_20261118_ppi_input_mom,GBP,gb,PPI Input MoM,PPI MoM,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,1.5,0.2,0.2,,2026-11-08T21:00:11.035190
+te_gbp_20261118_ppi_input_yoy,GBP,gb,PPI Input YoY,PPI YoY,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,8.3,8.5,8.5,,2026-11-08T21:00:11.037167
+te_gbp_20261118_ppi_output_mom,GBP,gb,PPI Output MoM,PPI MoM,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,0.8,0.5,0.5,,2026-11-08T21:00:11.038677
+te_gbp_20261118_ppi_output_yoy,GBP,gb,PPI Output YoY,PPI YoY,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,4.6,4.8,4.8,,2026-11-08T21:00:11.040695
+te_gbp_20261118_retail_price_index_mom,GBP,gb,Retail Price Index MoM,,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,0.1,0.4,0.4,,2026-11-08T21:00:11.044691
+te_gbp_20261118_retail_price_index_yoy,GBP,gb,Retail Price Index YoY,,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,MED,,3.9,4,4,,2026-11-08T21:00:11.047211
+te_gbp_20261118_services_inflation_yoy,GBP,gb,Services Inflation YoY,CPI YoY,2026-11-18,07:00 AM,10:30 AM,2026-11-18T07:00,HIGH,,3.7,3.9,3.9,,2026-11-08T21:00:11.050728
+te_eur_20261118_ecb_non_monetary_policy_meeting,EUR,ea,ECB Non-Monetary Policy Meeting,,2026-11-18,08:00 AM,11:30 AM,2026-11-18T08:00,HIGH,,,,,,2026-11-08T21:00:11.053727
+te_eur_20261118_core_inflation_rate_yoy_final,EUR,ea,Core Inflation Rate YoY Final,Core CPI,2026-11-18,10:00 AM,01:30 PM,2026-11-18T10:00,HIGH,,2.5,2.5,2.5,,2026-11-08T21:00:11.056728
+te_eur_20261118_cpi_final,EUR,ea,CPI Final,CPI YoY,2026-11-18,10:00 AM,01:30 PM,2026-11-18T10:00,HIGH,,104.31,104.77,104.77,,2026-11-08T21:00:11.060248
+te_eur_20261118_inflation_rate_mom_final,EUR,ea,Inflation Rate MoM Final,CPI MoM,2026-11-18,10:00 AM,01:30 PM,2026-11-18T10:00,HIGH,,0.6,0.4,0.4,,2026-11-08T21:00:11.062256
+te_eur_20261118_inflation_rate_yoy_final,EUR,ea,Inflation Rate YoY Final,CPI YoY,2026-11-18,10:00 AM,01:30 PM,2026-11-18T10:00,HIGH,,3.8,4,4,,2026-11-08T21:00:11.064256
+te_eur_20261118_7_year_bund_auction,EUR,ea,7-Year Bund Auction,,2026-11-18,10:30 AM,02:00 PM,2026-11-18T10:30,LOW,,3.36,3.36,3.36,,2026-11-08T21:00:11.067258
+te_usd_20261118_mba_30_year_mortgage_rate,USD,us,MBA 30-Year Mortgage Rate,,2026-11-18,12:00 PM,03:30 PM,2026-11-18T12:00,LOW,,,,,,2026-11-08T21:00:11.070364
+te_usd_20261118_mba_mortgage_applications,USD,us,MBA Mortgage Applications,,2026-11-18,12:00 PM,03:30 PM,2026-11-18T12:00,LOW,,13,,,,2026-11-08T21:00:11.073363
+te_usd_20261118_mba_mortgage_market_index,USD,us,MBA Mortgage Market Index,,2026-11-18,12:00 PM,03:30 PM,2026-11-18T12:00,LOW,,13,,,,2026-11-08T21:00:11.076360
+te_usd_20261118_mba_mortgage_refinance_index,USD,us,MBA Mortgage Refinance Index,,2026-11-18,12:00 PM,03:30 PM,2026-11-18T12:00,LOW,,13,,,,2026-11-08T21:00:11.079941
+te_usd_20261118_mba_purchase_index,USD,us,MBA Purchase Index,,2026-11-18,12:00 PM,03:30 PM,2026-11-18T12:00,LOW,,13,,,,2026-11-08T21:00:11.081940
+te_cad_20261118_new_housing_price_index_mom,CAD,ca,New Housing Price Index MoM,,2026-11-18,01:30 PM,05:00 PM,2026-11-18T13:30,MED,,-0.2,-0.2,-0.2,,2026-11-08T21:00:11.085485
+te_usd_20261118_building_permits_prel,USD,us,Building Permits Prel,Building Permits MoM,2026-11-18,01:30 PM,05:00 PM,2026-11-18T13:30,MED,,1.398,1.398,1.398,,2026-11-08T21:00:11.087486
+te_usd_20261118_housing_starts,USD,us,Housing Starts,Building Permits MoM,2026-11-18,01:30 PM,05:00 PM,2026-11-18T13:30,MED,,1.221,1.221,1.221,,2026-11-08T21:00:11.091983
+te_usd_20261118_building_permits_mom_prel,USD,us,Building Permits MoM Prel,Building Permits MoM,2026-11-18,01:30 PM,05:00 PM,2026-11-18T13:30,MED,,-0.4,-0.4,-0.4,,2026-11-08T21:00:11.093980
+te_usd_20261118_housing_starts_mom,USD,us,Housing Starts MoM,Building Permits MoM,2026-11-18,01:30 PM,05:00 PM,2026-11-18T13:30,MED,,-5.2,-5.2,-5.2,,2026-11-08T21:00:11.096981
+te_usd_20261118_pending_home_sales_mom,USD,us,Pending Home Sales MoM,,2026-11-18,03:00 PM,06:30 PM,2026-11-18T15:00,LOW,,-7.3,-7.3,-7.3,,2026-11-08T21:00:11.101059
+te_usd_20261118_pending_home_sales_yoy,USD,us,Pending Home Sales YoY,,2026-11-18,03:00 PM,06:30 PM,2026-11-18T15:00,LOW,,-11.3,-11.3,-11.3,,2026-11-08T21:00:11.104057
+te_usd_20261118_eia_crude_oil_stocks_change,USD,us,EIA Crude Oil Stocks Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.107062
+te_usd_20261118_eia_gasoline_stocks_change,USD,us,EIA Gasoline Stocks Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.111144
+te_usd_20261118_eia_crude_oil_imports_change,USD,us,EIA Crude Oil Imports Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,MED,,13,,,,2026-11-08T21:00:11.114143
+te_usd_20261118_eia_cushing_crude_oil_stocks_change,USD,us,EIA Cushing Crude Oil Stocks Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.117125
+te_usd_20261118_eia_distillate_fuel_production_change,USD,us,EIA Distillate Fuel Production Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.120195
+te_usd_20261118_eia_distillate_stocks_change,USD,us,EIA Distillate Stocks Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.122960
+te_usd_20261118_eia_gasoline_production_change,USD,us,EIA Gasoline Production Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.126052
+te_usd_20261118_eia_heating_oil_stocks_change,USD,us,EIA Heating Oil Stocks Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.129103
+te_usd_20261118_eia_refinery_crude_runs_change,USD,us,EIA Refinery Crude Runs Change,,2026-11-18,03:30 PM,07:00 PM,2026-11-18T15:30,LOW,,13,,,,2026-11-08T21:00:11.132165
+te_usd_20261118_17_week_bill_auction,USD,us,17-Week Bill Auction,,2026-11-18,04:30 PM,08:00 PM,2026-11-18T16:30,LOW,,,,,,2026-11-08T21:00:11.136800
+te_usd_20261118_atlanta_fed_gdpnow,USD,us,Atlanta Fed GDPNow,GDP Growth QoQ,2026-11-18,00:00,03:30 AM,2026-11-18T00:00,HIGH,,4,,,,2026-11-08T21:00:11.139863
+ff_aud_20261108_rba_assist_gov_hunter_speaks,AUD,au,RBA Assist Gov Hunter Speaks,,2026-11-08,17:30,09:00 PM,2026-11-08T17:30,LOW,,,,,,2026-11-08T21:00:12.442530
+ff_jpy_20261109_leading_indicators,JPY,jp,Leading Indicators,,2026-11-09,00:00,03:30 AM,2026-11-09T00:00,LOW,,118,116.7,116.7,,2026-11-08T21:00:12.451431
+ff_eur_20261109_german_trade_balance,EUR,ea,German Trade Balance,Balance of Trade,2026-11-09,02:00,05:30 AM,2026-11-09T02:00,LOW,,19.5,19.2,19.2,,2026-11-08T21:00:12.454121
+ff_eur_20261109_sentix_investor_confidence,EUR,ea,Sentix Investor Confidence,,2026-11-09,04:30,08:00 AM,2026-11-09T04:30,LOW,,2.7,2.1,2.1,,2026-11-08T21:00:12.455676
+ff_eur_20261109_ecofin_meetings,EUR,ea,ECOFIN Meetings,,2026-11-09,05:15,08:45 AM,2026-11-09T05:15,LOW,,,,,,2026-11-08T21:00:12.460342
+ff_eur_20261109_eurogroup_meetings,EUR,ea,Eurogroup Meetings,,2026-11-09,05:15,08:45 AM,2026-11-09T05:15,LOW,,,,,,2026-11-08T21:00:12.461904
+ff_usd_20261109_fomc_member_bowman_speaks,USD,us,FOMC Member Bowman Speaks,,2026-11-09,08:40,12:10 PM,2026-11-09T08:40,LOW,,,,,,2026-11-08T21:00:12.466319
+ff_usd_20261109_final_wholesale_inventories_m_m,USD,us,Final Wholesale Inventories m/m,,2026-11-09,10:00,01:30 PM,2026-11-09T10:00,LOW,,0.6,0.6,0.6,,2026-11-08T21:00:12.472703
+ff_usd_20261109_fomc_member_goolsbee_speaks,USD,us,FOMC Member Goolsbee Speaks,,2026-11-09,10:00,01:30 PM,2026-11-09T10:00,LOW,,,,,,2026-11-08T21:00:12.478491
+ff_usd_20261109_fomc_member_barkin_speaks,USD,us,FOMC Member Barkin Speaks,,2026-11-09,12:15,03:45 PM,2026-11-09T12:15,LOW,,,,,,2026-11-08T21:00:12.481658
+ff_gbp_20261109_boe_gov_bailey_speaks,GBP,gb,BOE Gov Bailey Speaks,,2026-11-09,12:25,03:55 PM,2026-11-09T12:25,MED,,,,,,2026-11-08T21:00:12.484471
+ff_aud_20261109_westpac_consumer_sentiment,AUD,au,Westpac Consumer Sentiment,Consumer Confidence,2026-11-09,18:30,10:00 PM,2026-11-09T18:30,LOW,,-4.7,,,,2026-11-08T21:00:12.487197
+ff_jpy_20261109_household_spending_y_y,JPY,jp,Household Spending y/y,Retail Sales YoY,2026-11-09,18:30,10:00 PM,2026-11-09T18:30,LOW,,-3.1,-3.1,-3.1,,2026-11-08T21:00:12.489919
+ff_jpy_20261109_bank_lending_y_y,JPY,jp,Bank Lending y/y,,2026-11-09,18:50,10:20 PM,2026-11-09T18:50,LOW,,5.3,5.4,5.4,,2026-11-08T21:00:12.493304
+ff_jpy_20261109_boj_summary_of_opinions,JPY,jp,BOJ Summary of Opinions,,2026-11-09,18:50,10:20 PM,2026-11-09T18:50,LOW,,,,,,2026-11-08T21:00:12.496224
+ff_jpy_20261109_current_account,JPY,jp,Current Account,Current Account to GDP,2026-11-09,18:50,10:20 PM,2026-11-09T18:50,LOW,,2.98,2.81,2.81,,2026-11-08T21:00:12.499248
+ff_gbp_20261109_brc_retail_sales_monitor_y_y,GBP,gb,BRC Retail Sales Monitor y/y,Retail Sales MoM,2026-11-09,19:01,10:31 PM,2026-11-09T19:01,LOW,,1,1.2,1.2,,2026-11-08T21:00:12.501591
+ff_aud_20261109_nab_business_confidence,AUD,au,NAB Business Confidence,Business Confidence,2026-11-09,19:30,11:00 PM,2026-11-09T19:30,LOW,,-13,,,,2026-11-08T21:00:12.503792
+ff_jpy_20261109_30_y_bond_auction,JPY,jp,30-y Bond Auction,,2026-11-09,22:35,02:05 AM,2026-11-09T22:35,LOW,,,,,,2026-11-08T21:00:12.506542
+ff_jpy_20261110_economy_watchers_sentiment,JPY,jp,Economy Watchers Sentiment,,2026-11-10,00:00,03:30 AM,2026-11-10T00:00,LOW,,47,46.9,46.9,,2026-11-08T21:00:12.511065
+ff_gbp_20261110_mpc_member_breeden_speaks,GBP,gb,MPC Member Breeden Speaks,,2026-11-10,03:30,07:00 AM,2026-11-10T03:30,LOW,,,,,,2026-11-08T21:00:12.515240
+ff_usd_20261110_fomc_member_waller_speaks,USD,us,FOMC Member Waller Speaks,,2026-11-10,04:00,07:30 AM,2026-11-10T04:00,MED,,,,,,2026-11-08T21:00:12.519173
+ff_usd_20261110_nfib_small_business_index,USD,us,NFIB Small Business Index,,2026-11-10,06:00,09:30 AM,2026-11-10T06:00,LOW,,97.9,97.7,97.7,,2026-11-08T21:00:12.522478
+ff_gbp_20261110_30_y_bond_auction,GBP,gb,30-y Bond Auction,,2026-11-10,06:32,08:32 AM,2026-11-10T05:02,LOW,,,,,,2026-11-08T21:00:12.526087
+ff_gbp_20261110_mpc_member_lombardelli_speaks,GBP,gb,MPC Member Lombardelli Speaks,,2026-11-10,07:30,11:00 AM,2026-11-10T07:30,LOW,,,,,,2026-11-08T21:00:12.529230
+ff_usd_20261110_adp_weekly_employment_change,USD,us,ADP Weekly Employment Change,Employment Change,2026-11-10,08:15,11:45 AM,2026-11-10T08:15,LOW,,16.8,,,,2026-11-08T21:00:12.531972
+ff_usd_20261110_core_cpi_m_m,USD,us,Core CPI m/m,Core CPI,2026-11-10,08:30,12:00 PM,2026-11-10T08:30,HIGH,,0.3,0.2,0.2,,2026-11-08T21:00:12.537508
+ff_usd_20261110_cpi_m_m,USD,us,CPI m/m,,2026-11-10,08:30,12:00 PM,2026-11-10T08:30,HIGH,,0.6,0.3,0.3,,2026-11-08T21:00:12.541466
+ff_usd_20261110_fomc_member_logan_speaks,USD,us,FOMC Member Logan Speaks,,2026-11-10,10:50,02:20 PM,2026-11-10T10:50,LOW,,,,,,2026-11-08T21:00:12.544474
+ff_usd_20261110_10_y_bond_auction,USD,us,10-y Bond Auction,,2026-11-10,13:01,04:31 PM,2026-11-10T13:01,LOW,,,,,,2026-11-08T21:00:12.549060
+ff_cad_20261110_boc_summary_of_deliberations,CAD,ca,BOC Summary of Deliberations,,2026-11-10,13:30,05:00 PM,2026-11-10T13:30,LOW,,,,,,2026-11-08T21:00:12.553101
+ff_gbp_20261110_mpc_member_pill_speaks,GBP,gb,MPC Member Pill Speaks,,2026-11-10,13:30,05:00 PM,2026-11-10T13:30,LOW,,,,,,2026-11-08T21:00:12.557102
+ff_usd_20261110_fomc_member_schmid_speaks,USD,us,FOMC Member Schmid Speaks,,2026-11-10,13:30,05:00 PM,2026-11-10T13:30,LOW,,,,,,2026-11-08T21:00:12.560843
+ff_usd_20261110_fomc_member_bowman_speaks,USD,us,FOMC Member Bowman Speaks,,2026-11-10,15:30,10:00 PM,2026-11-10T18:30,LOW,,,,,,2026-11-08T21:00:12.563408
+ff_usd_20261110_api_weekly_statistical_bulletin,USD,us,API Weekly Statistical Bulletin,,2026-11-10,16:30,08:00 PM,2026-11-10T16:30,LOW,,,,,,2026-11-08T21:00:12.566539
+ff_usd_20261110_fomc_member_paulson_speaks,USD,us,FOMC Member Paulson Speaks,,2026-11-10,18:30,10:00 PM,2026-11-10T18:30,LOW,,,,,,2026-11-08T21:00:12.572722
+ff_jpy_20261110_m2_money_stock_y_y,JPY,jp,M2 Money Stock y/y,,2026-11-10,18:50,10:20 PM,2026-11-10T18:50,LOW,,2,2.1,2.1,,2026-11-08T21:00:12.575723
+ff_jpy_20261111_prelim_machine_tool_orders_y_y,JPY,jp,Prelim Machine Tool Orders y/y,,2026-11-11,01:00,04:30 AM,2026-11-11T01:00,LOW,,60.4,,,,2026-11-08T21:00:12.579225
+ff_eur_20261111_german_final_cpi_m_m,EUR,ea,German Final CPI m/m,,2026-11-11,02:00,05:30 AM,2026-11-11T02:00,LOW,,-0.2,-0.2,-0.2,,2026-11-08T21:00:12.582243
+ff_eur_20261111_french_bank_holiday,EUR,ea,French Bank Holiday,,2026-11-11,02:01,05:31 AM,2026-11-11T02:01,LOW,,,,,,2026-11-08T21:00:12.585755
+ff_eur_20261111_german_buba_president_nagel_speaks,EUR,ea,German Buba President Nagel Speaks,,2026-11-11,03:20,06:45 AM,2026-11-11T03:15,LOW,,,,,,2026-11-08T21:00:12.588756
+ff_eur_20261111_italian_industrial_production_m_m,EUR,ea,Italian Industrial Production m/m,Industrial Production YoY,2026-11-11,04:00,07:30 AM,2026-11-11T04:00,LOW,,-1.3,0.7,0.7,,2026-11-08T21:00:12.591271
+ff_eur_20261111_german_30_y_bond_auction,EUR,ea,German 30-y Bond Auction,,2026-11-11,05:34,09:05 AM,2026-11-11T05:35,LOW,,,,,,2026-11-08T21:00:12.595273
+ff_cad_20261111_bank_holiday,CAD,ca,Bank Holiday,,2026-11-11,08:00,11:30 AM,2026-11-11T08:00,LOW,,,,,,2026-11-08T21:00:12.598787
+ff_usd_20261111_bank_holiday,USD,us,Bank Holiday,,2026-11-11,08:00,11:30 AM,2026-11-11T08:00,LOW,,,,,,2026-11-08T21:00:12.601806
+ff_nzd_20261111_visitor_arrivals_m_m,NZD,nz,Visitor Arrivals m/m,,2026-11-11,16:45,08:15 PM,2026-11-11T16:45,LOW,,2.8,,,,2026-11-08T21:00:12.606331
+ff_jpy_20261111_ppi_y_y,JPY,jp,PPI y/y,PPI YoY,2026-11-11,18:50,10:20 PM,2026-11-11T18:50,LOW,,6.8,6.5,6.5,,2026-11-08T21:00:12.609850
+ff_aud_20261111_mi_inflation_expectations,AUD,au,MI Inflation Expectations,Inflation Expectations,2026-11-11,19:00,10:30 PM,2026-11-11T19:00,LOW,,5.3,,,,2026-11-08T21:00:12.612855
+ff_gbp_20261111_rics_house_price_balance,GBP,gb,RICS House Price Balance,,2026-11-11,19:01,10:31 PM,2026-11-11T19:01,LOW,,-32,-32,-32,,2026-11-08T21:00:12.615852
+ff_gbp_20261112_gdp_m_m,GBP,gb,GDP m/m,,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,HIGH,,0.1,0,0,,2026-11-08T21:00:12.618851
+ff_gbp_20261112_prelim_gdp_q_q,GBP,gb,Prelim GDP q/q,,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,MED,,0.5,0.7,0.7,,2026-11-08T21:00:12.620893
+ff_gbp_20261112_construction_output_m_m,GBP,gb,Construction Output m/m,,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,-0.2,0,0,,2026-11-08T21:00:12.624896
+ff_gbp_20261112_goods_trade_balance,GBP,gb,Goods Trade Balance,Balance of Trade,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,-18,-19.2,-19.2,,2026-11-08T21:00:12.626893
+ff_gbp_20261112_index_of_services_3m_3m,GBP,gb,Index of Services 3m/3m,,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,0.9,0.9,0.9,,2026-11-08T21:00:12.628891
+ff_gbp_20261112_industrial_production_m_m,GBP,gb,Industrial Production m/m,Industrial Production YoY,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,0.8,-0.4,-0.4,,2026-11-08T21:00:12.631048
+ff_gbp_20261112_manufacturing_production_m_m,GBP,gb,Manufacturing Production m/m,Industrial Production YoY,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,1.2,-0.5,-0.5,,2026-11-08T21:00:12.633585
+ff_gbp_20261112_prelim_business_investment_q_q,GBP,gb,Prelim Business Investment q/q,,2026-11-12,02:00,05:30 AM,2026-11-12T02:00,LOW,,1.7,-0.3,-0.3,,2026-11-08T21:00:12.638358
+ff_eur_20261112_ecb_economic_bulletin,EUR,ea,ECB Economic Bulletin,,2026-11-12,04:00,07:30 AM,2026-11-12T04:00,LOW,,,,,,2026-11-08T21:00:12.641409
+ff_eur_20261112_eu_economic_forecasts,EUR,ea,EU Economic Forecasts,,2026-11-12,05:00,08:30 AM,2026-11-12T05:00,LOW,,,,,,2026-11-08T21:00:12.644509
+ff_cad_20261112_building_permits_m_m,CAD,ca,Building Permits m/m,Building Permits MoM,2026-11-12,08:30,12:00 PM,2026-11-12T08:30,LOW,,8.8,-3.9,-3.9,,2026-11-08T21:00:12.646050
+ff_usd_20261112_unemployment_claims,USD,us,Unemployment Claims,,2026-11-12,08:30,12:00 PM,2026-11-12T08:30,MED,,189,194,194,,2026-11-08T21:00:12.649105
+ff_usd_20261112_fomc_member_hammack_speaks,USD,us,FOMC Member Hammack Speaks,,2026-11-12,09:00,12:00 PM,2026-11-12T08:30,LOW,,,,,,2026-11-08T21:00:12.650656
+ff_usd_20261112_existing_home_sales,USD,us,Existing Home Sales,,2026-11-12,10:00,01:30 PM,2026-11-12T10:00,LOW,,3.99,3.86,3.86,,2026-11-08T21:00:12.652211
+ff_usd_20261112_fomc_member_barr_speaks,USD,us,FOMC Member Barr Speaks,,2026-11-12,10:00,01:30 PM,2026-11-12T10:00,LOW,,,,,,2026-11-08T21:00:12.653897
+ff_usd_20261112_mortgage_delinquencies,USD,us,Mortgage Delinquencies,,2026-11-12,10:00,01:30 PM,2026-11-12T10:00,LOW,,4.37,,,,2026-11-08T21:00:12.657031
+ff_aud_20261112_cb_leading_index_m_m,AUD,au,CB Leading Index m/m,,2026-11-12,10:30,02:00 PM,2026-11-12T10:30,LOW,,-0.3,,,,2026-11-08T21:00:12.659592
+ff_usd_20261112_fomc_member_goolsbee_speaks,USD,us,FOMC Member Goolsbee Speaks,,2026-11-12,11:30,02:45 PM,2026-11-12T11:15,LOW,,,,,,2026-11-08T21:00:12.662679
+ff_usd_20261112_crude_oil_inventories,USD,us,Crude Oil Inventories,,2026-11-12,12:00,03:30 PM,2026-11-12T12:00,LOW,,-0.9,-0.6,-0.6,,2026-11-08T21:00:12.664245
+ff_usd_20261112_30_y_bond_auction,USD,us,30-y Bond Auction,,2026-11-12,13:01,04:31 PM,2026-11-12T13:01,LOW,,,,,,2026-11-08T21:00:12.667816
+ff_usd_20261112_fomc_member_daly_speaks,USD,us,FOMC Member Daly Speaks,,2026-11-12,13:10,04:40 PM,2026-11-12T13:10,LOW,,,,,,2026-11-08T21:00:12.670333
+ff_usd_20261112_fomc_member_schmid_speaks,USD,us,FOMC Member Schmid Speaks,,2026-11-12,13:30,05:00 PM,2026-11-12T13:30,LOW,,,,,,2026-11-08T21:00:12.673334
+ff_usd_20261112_federal_budget_balance,USD,us,Federal Budget Balance,,2026-11-12,14:00,05:30 PM,2026-11-12T14:00,LOW,,-26.9,-286.3,-286.3,,2026-11-08T21:00:12.677336
+ff_eur_20261112_ecb_president_lagarde_speaks,EUR,ea,ECB President Lagarde Speaks,,2026-11-12,14:30,06:00 PM,2026-11-12T14:30,MED,,,,,,2026-11-08T21:00:12.680888
+ff_nzd_20261112_businessnz_manufacturing_index,NZD,nz,BusinessNZ Manufacturing Index,,2026-11-12,16:30,08:00 PM,2026-11-12T16:30,LOW,,56.5,,,,2026-11-08T21:00:12.685408
+ff_usd_20261112_fomc_member_williams_speaks,USD,us,FOMC Member Williams Speaks,,2026-11-12,18:30,10:00 PM,2026-11-12T18:30,LOW,,,,,,2026-11-08T21:00:12.687416
+ff_eur_20261113_german_wpi_m_m,EUR,ea,German WPI m/m,,2026-11-13,02:00,05:30 AM,2026-11-13T02:00,LOW,,1.9,0.4,0.4,,2026-11-08T21:00:12.689938
+ff_chf_20261113_ppi_m_m,CHF,ch,PPI m/m,PPI YoY,2026-11-13,02:30,06:00 AM,2026-11-13T02:30,LOW,,0.3,0.2,0.2,,2026-11-08T21:00:12.691947
+ff_eur_20261113_french_final_cpi_m_m,EUR,ea,French Final CPI m/m,,2026-11-13,02:45,06:15 AM,2026-11-13T02:45,LOW,,0.4,0.4,0.4,,2026-11-08T21:00:12.694945
+ff_eur_20261113_italian_trade_balance,EUR,ea,Italian Trade Balance,Balance of Trade,2026-11-13,04:00,07:30 AM,2026-11-13T04:00,LOW,,1.77,1.85,1.85,,2026-11-08T21:00:12.696945
+ff_eur_20261113_flash_employment_change_q_q,EUR,ea,Flash Employment Change q/q,Employment Change,2026-11-13,05:00,08:30 AM,2026-11-13T05:00,LOW,,0.1,0.2,0.2,,2026-11-08T21:00:12.699013
+ff_eur_20261113_flash_gdp_q_q,EUR,ea,Flash GDP q/q,,2026-11-13,05:00,08:30 AM,2026-11-13T05:00,LOW,,0.4,0.4,0.4,,2026-11-08T21:00:12.702032
+ff_eur_20261113_trade_balance,EUR,ea,Trade Balance,Balance of Trade,2026-11-13,05:00,08:30 AM,2026-11-13T05:00,LOW,,-6.8,-4.5,-4.5,,2026-11-08T21:00:12.704033
+ff_cad_20261113_manufacturing_sales_m_m,CAD,ca,Manufacturing Sales m/m,,2026-11-13,08:30,12:00 PM,2026-11-13T08:30,LOW,,1.5,0.1,0.1,,2026-11-08T21:00:12.707035
+ff_cad_20261113_wholesale_sales_m_m,CAD,ca,Wholesale Sales m/m,,2026-11-13,08:30,12:00 PM,2026-11-13T08:30,LOW,,-1.6,0.5,0.5,,2026-11-08T21:00:12.710139
+ff_usd_20261113_core_ppi_m_m,USD,us,Core PPI m/m,PPI YoY,2026-11-13,08:30,12:00 PM,2026-11-13T08:30,HIGH,,0.7,0.3,0.3,,2026-11-08T21:00:12.712160
+ff_usd_20261113_ppi_m_m,USD,us,PPI m/m,PPI YoY,2026-11-13,08:30,12:00 PM,2026-11-13T08:30,HIGH,,1.3,0.4,0.4,,2026-11-08T21:00:12.714160
+ff_usd_20261113_fomc_member_collins_speaks,USD,us,FOMC Member Collins Speaks,,2026-11-13,09:10,12:40 PM,2026-11-13T09:10,LOW,,,,,,2026-11-08T21:00:12.718668
+ff_gbp_20261113_cb_leading_index_m_m,GBP,gb,CB Leading Index m/m,,2026-11-13,09:30,01:00 PM,2026-11-13T09:30,LOW,,-0.1,,,,2026-11-08T21:00:12.721682
+ff_usd_20261113_natural_gas_storage,USD,us,Natural Gas Storage,,2026-11-13,10:30,02:00 PM,2026-11-13T10:30,LOW,,77,65,65,,2026-11-08T21:00:12.725678
+ff_usd_20261113_fomc_member_bowman_speaks,USD,us,FOMC Member Bowman Speaks,,2026-11-13,10:50,02:20 PM,2026-11-13T10:50,LOW,,,,,,2026-11-08T21:00:12.728691
+ff_usd_20261113_fomc_member_daly_speaks,USD,us,FOMC Member Daly Speaks,,2026-11-13,12:00,03:30 PM,2026-11-13T12:00,LOW,,,,,,2026-11-08T21:00:12.730710
+ff_usd_20261113_fomc_member_jefferson_speaks,USD,us,FOMC Member Jefferson Speaks,,2026-11-13,19:00,10:30 PM,2026-11-13T19:00,LOW,,,,,,2026-11-08T21:00:12.735624
+ff_gbp_20261114_mpc_member_greene_speaks,GBP,gb,MPC Member Greene Speaks,,2026-11-14,06:00,09:30 AM,2026-11-14T06:00,LOW,,,,,,2026-11-08T21:00:12.738718
+te_usd_20261118_20_year_bond_auction,USD,us,20-Year Bond Auction,,2026-11-18,06:00 PM,09:30 PM,2026-11-18T18:00,LOW,,5.469,5.469,5.469,,2026-11-09T00:02:39.462942
+te_usd_20261118_fomc_minutes,USD,us,FOMC Minutes,,2026-11-18,07:00 PM,10:30 PM,2026-11-18T19:00,HIGH,,,,,,2026-11-09T00:02:39.515266
+te_eur_20261110_2_936_,EUR,ea,2.936%,,2026-11-10,09:40 AM,01:10 PM,2026-11-10T09:40,LOW,2.936,2.96,2.936,2.96,,2026-11-10T18:33:09.805420
+te_eur_20261112_3_year_btp_auction,EUR,ea,3-Year BTP Auction,,2026-11-12,10:10 AM,01:40 PM,2026-11-12T10:10,LOW,,3.69,3.69,3.69,,2026-11-10T18:33:10.116882
+te_eur_20261112_7_year_btp_auction,EUR,ea,7-Year BTP Auction,,2026-11-12,10:10 AM,01:40 PM,2026-11-12T10:10,LOW,,3.9,3.9,3.9,,2026-11-10T18:33:10.124948
+te_eur_20261113_consumer_confidence,EUR,ea,Consumer Confidence,Consumer Confidence,2026-11-13,00:00,03:30 AM,2026-11-13T00:00,MED,,84.1,83.4,83.4,,2026-11-10T18:33:10.369833
+te_usd_20261118_net_long_term_tic_flows,USD,us,Net Long-term TIC Flows,,2026-11-18,09:00 PM,12:30 AM,2026-11-18T21:00,LOW,,279.2,279.2,279.2,,2026-11-10T18:33:10.690833
+te_usd_20261118_foreign_bond_investment,USD,us,Foreign Bond Investment,,2026-11-18,09:00 PM,12:30 AM,2026-11-18T21:00,LOW,,108.9,108.9,108.9,,2026-11-10T18:33:10.694850
+te_usd_20261118_overall_net_capital_flows,USD,us,Overall Net Capital Flows,Terms of Trade,2026-11-18,09:00 PM,12:30 AM,2026-11-18T21:00,MED,,199.8,199.8,199.8,,2026-11-10T18:33:10.697833
+te_jpy_20261118_machinery_orders_mom,JPY,jp,Machinery Orders MoM,Capacity Utilization,2026-11-18,11:50 PM,03:20 AM,2026-11-18T23:50,MED,,5.2,5.2,5.2,,2026-11-10T18:33:10.700840
+te_jpy_20261118_machinery_orders_yoy,JPY,jp,Machinery Orders YoY,Capacity Utilization,2026-11-18,11:50 PM,03:20 AM,2026-11-18T23:50,MED,,18.6,18.6,18.6,,2026-11-10T18:33:10.703823
+te_jpy_20261118_foreign_bond_investment,JPY,jp,Foreign Bond Investment,,2026-11-18,11:50 PM,03:20 AM,2026-11-18T23:50,LOW,,14,,,,2026-11-10T18:33:10.708467
+te_jpy_20261118_stock_investment_by_foreigners,JPY,jp,Stock Investment by Foreigners,,2026-11-18,11:50 PM,03:20 AM,2026-11-18T23:50,LOW,,14,,,,2026-11-10T18:33:10.711729
+te_aud_20261119_employment_change,AUD,au,Employment Change,Employment Change,2026-11-19,12:30 AM,04:00 AM,2026-11-19T00:30,HIGH,,-39.3,34,34,,2026-11-10T18:33:10.716381
+te_aud_20261119_full_time_employment_chg,AUD,au,Full Time Employment Chg,Employment Rate,2026-11-19,12:30 AM,04:00 AM,2026-11-19T00:30,MED,,34.4,34.4,34.4,,2026-11-10T18:33:10.719464
+te_aud_20261119_unemployment_rate,AUD,au,Unemployment Rate,Unemployment Rate,2026-11-19,12:30 AM,04:00 AM,2026-11-19T00:30,HIGH,,4.7,4.7,4.7,,2026-11-10T18:33:10.721024
+te_aud_20261119_part_time_employment_chg,AUD,au,Part Time Employment Chg,,2026-11-19,12:30 AM,04:00 AM,2026-11-19T00:30,LOW,,-73.7,-73.7,-73.7,,2026-11-10T18:33:10.725778
+te_aud_20261119_participation_rate,AUD,au,Participation Rate,Labor Force Participation Rate,2026-11-19,12:30 AM,04:00 AM,2026-11-19T00:30,MED,,66.8,66.8,66.8,,2026-11-10T18:33:10.728878
+te_eur_20261119_current_account,EUR,ea,Current Account,Current Account to GDP,2026-11-19,09:00 AM,12:30 PM,2026-11-19T09:00,HIGH,,2766,27,2150,,2026-11-10T18:33:10.731986
+te_eur_20261119_construction_output_yoy,EUR,ea,Construction Output YoY,,2026-11-19,10:00 AM,01:30 PM,2026-11-19T10:00,LOW,,1.4,-2,-2,,2026-11-10T18:33:10.738149
+te_eur_20261119_labour_cost_index_yoy_flash,EUR,ea,Labour Cost Index YoY Flash,Wage Growth YoY,2026-11-19,10:00 AM,01:30 PM,2026-11-19T10:00,MED,,3.1,3,3,,2026-11-10T18:33:10.741380
+te_cad_20261119_ppi_mom,CAD,ca,PPI MoM,PPI MoM,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,MED,,2,2,2,,2026-11-10T18:33:10.744512
+te_cad_20261119_ppi_yoy,CAD,ca,PPI YoY,PPI YoY,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,MED,,14.5,14.5,14.5,,2026-11-10T18:33:10.747069
+te_cad_20261119_raw_materials_prices_mom,CAD,ca,Raw Materials Prices MoM,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,4.8,4.8,4.8,,2026-11-10T18:33:10.752072
+te_cad_20261119_raw_materials_prices_yoy,CAD,ca,Raw Materials Prices YoY,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,27,27,27,,2026-11-10T18:33:10.755093
+te_usd_20261119_initial_jobless_claims,USD,us,Initial Jobless Claims,Job Vacancies,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,MED,,14,,,,2026-11-10T18:33:10.759070
+te_usd_20261119_philadelphia_fed_manufacturing_index,USD,us,Philadelphia Fed Manufacturing Index,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,20.9,20.9,20.9,,2026-11-10T18:33:10.763103
+te_usd_20261119_continuing_jobless_claims,USD,us,Continuing Jobless Claims,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,7,,,,2026-11-10T18:33:10.766070
+te_usd_20261119_jobless_claims_4_week_average,USD,us,Jobless Claims 4-week Average,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,,,,,2026-11-10T18:33:10.770069
+te_usd_20261119_philly_fed_business_conditions,USD,us,Philly Fed Business Conditions,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,33,33,33,,2026-11-10T18:33:10.774066
+te_usd_20261119_philly_fed_capex_index,USD,us,Philly Fed CAPEX Index,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,34.9,34.9,34.9,,2026-11-10T18:33:10.778095
+te_usd_20261119_philly_fed_employment,USD,us,Philly Fed Employment,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,9.1,9.1,9.1,,2026-11-10T18:33:10.781605
+te_usd_20261119_philly_fed_new_orders,USD,us,Philly Fed New Orders,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,4.3,4.3,4.3,,2026-11-10T18:33:10.785643
+te_usd_20261119_philly_fed_prices_paid,USD,us,Philly Fed Prices Paid,,2026-11-19,01:30 PM,05:00 PM,2026-11-19T13:30,LOW,,43.2,43.2,43.2,,2026-11-10T18:33:10.788643
+te_usd_20261119_fed_hammack_speech,USD,us,Fed Hammack Speech,,2026-11-19,01:50 PM,05:20 PM,2026-11-19T13:50,LOW,,,,,,2026-11-10T18:33:10.792617
+te_usd_20261119_eia_natural_gas_stocks_change,USD,us,EIA Natural Gas Stocks Change,,2026-11-19,03:30 PM,07:00 PM,2026-11-19T15:30,LOW,,13,,,,2026-11-10T18:33:10.800619
+te_usd_20261119_kansas_fed_composite_index,USD,us,Kansas Fed Composite Index,,2026-11-19,04:00 PM,07:30 PM,2026-11-19T16:00,LOW,,11,11,11,,2026-11-10T18:33:10.804400
+te_usd_20261119_kansas_fed_manufacturing_index,USD,us,Kansas Fed Manufacturing Index,,2026-11-19,04:00 PM,07:30 PM,2026-11-19T16:00,LOW,,16,16,16,,2026-11-10T18:33:10.807479
+te_usd_20261119_4_week_bill_auction,USD,us,4-Week Bill Auction,,2026-11-19,04:30 PM,08:00 PM,2026-11-19T16:30,LOW,,,,,,2026-11-10T18:33:10.810598
+te_usd_20261119_8_week_bill_auction,USD,us,8-Week Bill Auction,,2026-11-19,04:30 PM,08:00 PM,2026-11-19T16:30,LOW,,,,,,2026-11-10T18:33:10.813738
+te_cad_20261119_5_year_bond_auction,CAD,ca,5-Year Bond Auction,,2026-11-19,05:00 PM,08:30 PM,2026-11-19T17:00,LOW,,3.46,3.46,3.46,,2026-11-10T18:33:10.817315
+te_usd_20261119_15_year_mortgage_rate,USD,us,15-Year Mortgage Rate,,2026-11-19,05:00 PM,08:30 PM,2026-11-19T17:00,LOW,,,,,,2026-11-10T18:33:10.821351
+te_usd_20261119_30_year_mortgage_rate,USD,us,30-Year Mortgage Rate,,2026-11-19,05:00 PM,08:30 PM,2026-11-19T17:00,LOW,,,,,,2026-11-10T18:33:10.825327
+te_usd_20261119_10_year_tips_auction,USD,us,10-Year TIPS Auction,,2026-11-19,06:00 PM,09:30 PM,2026-11-19T18:00,LOW,,2.653,2.653,2.653,,2026-11-10T18:33:10.828867
+te_usd_20261119_fed_balance_sheet,USD,us,Fed Balance Sheet,CB Balance Sheet YoY,2026-11-19,09:30 PM,01:00 AM,2026-11-19T21:30,MED,,18,,,,2026-11-10T18:33:10.831918
+te_usd_20261119_reserve_balances_with_fed_banks,USD,us,Reserve Balances with Fed Banks,,2026-11-19,09:30 PM,01:00 AM,2026-11-19T21:30,LOW,,18,,,,2026-11-10T18:33:10.835443
+te_jpy_20261119_inflation_rate_yoy,JPY,jp,Inflation Rate YoY,CPI YoY,2026-11-19,11:30 PM,03:00 AM,2026-11-19T23:30,HIGH,,2.1,2.1,2.1,,2026-11-10T18:33:10.837441
+te_jpy_20261119_core_inflation_rate_yoy,JPY,jp,Core Inflation Rate YoY,Core CPI,2026-11-19,11:30 PM,03:00 AM,2026-11-19T23:30,HIGH,,2.1,2.1,2.1,,2026-11-10T18:33:10.839440
+te_jpy_20261119_inflation_rate_ex_food_and_energy_yoy,JPY,jp,Inflation Rate Ex-Food and Energy YoY,CPI YoY,2026-11-19,11:30 PM,03:00 AM,2026-11-19T23:30,HIGH,,2.4,2.4,2.4,,2026-11-10T18:33:10.840442
+te_jpy_20261119_inflation_rate_mom,JPY,jp,Inflation Rate MoM,CPI MoM,2026-11-19,11:30 PM,03:00 AM,2026-11-19T23:30,HIGH,,0,0,0,,2026-11-10T18:33:10.843437
+te_aud_20261119_rba_payments_system_board_meeting,AUD,au,RBA Payments System Board Meeting,,2026-11-19,00:00,03:30 AM,2026-11-19T00:00,LOW,,,,,,2026-11-10T18:33:10.847441
+te_eur_20261119_consumer_confidence,EUR,ea,Consumer Confidence,Consumer Confidence,2026-11-19,00:00,03:30 AM,2026-11-19T00:00,MED,,,,,,2026-11-10T18:33:10.848463
+te_gbp_20261120_gfk_consumer_confidence,GBP,gb,GfK Consumer Confidence,Consumer Confidence,2026-11-20,12:01 AM,03:31 AM,2026-11-20T00:01,MED,,-24,-23,-23,,2026-11-10T18:33:10.851461
+te_jpy_20261120_3_month_bill_auction,JPY,jp,3-Month Bill Auction,,2026-11-20,03:35 AM,07:05 AM,2026-11-20T03:35,LOW,,,,,,2026-11-10T18:33:10.855473
+te_eur_20261120_ppi_yoy,EUR,ea,PPI YoY,PPI YoY,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,MED,,6.7,7.1,7.1,,2026-11-10T18:33:10.857442
+te_eur_20261120_ppi_mom,EUR,ea,PPI MoM,PPI MoM,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,MED,,1.9,0.5,0.5,,2026-11-10T18:33:10.860462
+te_gbp_20261120_retail_sales_mom,GBP,gb,Retail Sales MoM,Retail Sales MoM,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,HIGH,,-0.4,0.1,0.1,,2026-11-10T18:33:10.862477
+te_gbp_20261120_retail_sales_yoy,GBP,gb,Retail Sales YoY,Retail Sales YoY,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,HIGH,,0.8,0.9,0.9,,2026-11-10T18:33:10.864511
+te_gbp_20261120_public_sector_net_borrowing_ex_banks,GBP,gb,Public Sector Net Borrowing Ex Banks,,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,LOW,,-24.5,-22,-22,,2026-11-10T18:33:10.868476
+te_gbp_20261120_retail_sales_ex_fuel_mom,GBP,gb,Retail Sales ex Fuel MoM,Retail Sales MoM,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,HIGH,,-0.7,0.1,0.1,,2026-11-10T18:33:10.870471
+te_gbp_20261120_retail_sales_ex_fuel_yoy,GBP,gb,Retail Sales ex Fuel YoY,Retail Sales YoY,2026-11-20,07:00 AM,10:30 AM,2026-11-20T07:00,HIGH,,0.8,0.9,0.9,,2026-11-10T18:33:10.873484
+te_eur_20261120_business_confidence,EUR,ea,Business Confidence,Business Confidence,2026-11-20,07:45 AM,11:15 AM,2026-11-20T07:45,MED,,105,102,102,,2026-11-10T18:33:10.875994
+te_eur_20261120_business_climate_indicator,EUR,ea,Business Climate Indicator,Business Confidence,2026-11-20,07:45 AM,11:15 AM,2026-11-20T07:45,MED,,98,96,96,,2026-11-10T18:33:10.879028
+te_eur_20261120_construction_output_yoy,EUR,ea,Construction Output YoY,,2026-11-20,09:00 AM,12:30 PM,2026-11-20T09:00,LOW,,-2.2,-3,-3,,2026-11-10T18:33:10.882010
+te_eur_20261120_negotiated_wage_growth,EUR,ea,Negotiated Wage Growth,Wage Growth YoY,2026-11-20,10:00 AM,01:30 PM,2026-11-20T10:00,MED,,2.44,2.4,2.4,,2026-11-10T18:33:10.885029
+te_gbp_20261120_cbi_industrial_trends_orders,GBP,gb,CBI Industrial Trends Orders,,2026-11-20,11:00 AM,02:30 PM,2026-11-20T11:00,LOW,,-32,-35,-35,,2026-11-10T18:33:10.889003
+te_cad_20261120_retail_sales_ex_autos_mom,CAD,ca,Retail Sales Ex Autos MoM,Retail Sales MoM,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,HIGH,,1.2,0.3,0.3,,2026-11-10T18:33:10.892003
+te_cad_20261120_retail_sales_mom_final,CAD,ca,Retail Sales MoM Final,Retail Sales MoM,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,HIGH,,1.2,0.7,0.7,,2026-11-10T18:33:10.895006
+te_cad_20261120_retail_sales_mom_prel,CAD,ca,Retail Sales MoM Prel,Retail Sales MoM,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,HIGH,,,,,,2026-11-10T18:33:10.898005
+te_cad_20261120_manufacturing_sales_mom_prel,CAD,ca,Manufacturing Sales MoM Prel,,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,LOW,,,,,,2026-11-10T18:33:10.902002
+te_cad_20261120_retail_sales_yoy,CAD,ca,Retail Sales YoY,Retail Sales YoY,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,HIGH,,5.4,2.4,2.4,,2026-11-10T18:33:10.904008
+te_cad_20261120_wholesale_sales_mom_prel,CAD,ca,Wholesale Sales MoM Prel,,2026-11-20,01:30 PM,05:00 PM,2026-11-20T13:30,LOW,,,,,,2026-11-10T18:33:10.908016
+te_eur_20261120_consumer_confidence_flash,EUR,ea,Consumer Confidence Flash,Consumer Confidence,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,MED,,-17.9,-18.6,-18.6,,2026-11-10T18:33:10.912003
+te_usd_20261120_michigan_consumer_sentiment_final,USD,us,Michigan Consumer Sentiment Final,Consumer Confidence,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,MED,,48,51,51,,2026-11-10T18:33:10.916007
+te_usd_20261120_michigan_5_year_inflation_expectations_final,USD,us,Michigan 5 Year Inflation Expectations Final,Inflation Expectations,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,HIGH,,3.5,3.4,3.4,,2026-11-10T18:33:10.918008
+te_usd_20261120_michigan_consumer_expectations_final,USD,us,Michigan Consumer Expectations Final,,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,LOW,,48.8,50.9,50.9,,2026-11-10T18:33:10.921002
+te_usd_20261120_michigan_current_conditions_final,USD,us,Michigan Current Conditions Final,,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,LOW,,46.7,51,51,,2026-11-10T18:33:10.924523
+te_usd_20261120_michigan_inflation_expectations_final,USD,us,Michigan Inflation Expectations Final,Inflation Expectations,2026-11-20,03:00 PM,06:30 PM,2026-11-20T15:00,HIGH,,4.7,4.3,4.3,,2026-11-10T18:33:10.927547
+te_cad_20261120_cfib_business_barometer,CAD,ca,CFIB Business Barometer,,2026-11-20,00:00,03:30 AM,2026-11-20T00:00,LOW,,50,50,50,,2026-11-10T18:33:10.930520
+ff_eur_20261111_ecb_president_lagarde_speaks,EUR,ea,ECB President Lagarde Speaks,,2026-11-11,04:45,08:15 AM,2026-11-11T04:45,MED,,,,,,2026-11-10T18:33:13.700384
+ff_eur_20261112_german_buba_president_nagel_speaks,EUR,ea,German Buba President Nagel Speaks,,2026-11-12,12:30,04:00 PM,2026-11-12T12:30,LOW,,,,,,2026-11-10T18:33:13.742687
+ff_eur_20261113_german_buba_president_nagel_speaks,EUR,ea,German Buba President Nagel Speaks,,2026-11-13,11:00,02:30 PM,2026-11-13T11:00,LOW,,,,,,2026-11-10T18:33:13.777380
+ff_usd_20261113_fomc_member_logan_speaks,USD,us,FOMC Member Logan Speaks,,2026-11-13,09:40,01:10 PM,2026-11-13T09:40,LOW,,,,,,2026-11-12T14:40:40.019445
+ff_usd_20261113_mortgage_delinquencies,USD,us,Mortgage Delinquencies,,2026-11-13,10:15,01:45 PM,2026-11-13T10:15,LOW,,4.37,,,,2026-11-13T11:24:55.611320

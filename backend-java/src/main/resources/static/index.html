@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en" translate="no" class="notranslate" data-theme="theme-cyan">
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forex Intelligence Suite — Institutional Quant Command Center v7.0 (Aladdin / Bloomberg Edition)</title>
+    <link rel="stylesheet" href="css/app-layout.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+</head>
+<body class="notranslate" translate="no">
+
+    <div class="desktop-app-shell">
+
+        <!-- 1. LEFT VERTICAL SIDEBAR NAVIGATION (268px) -->
+        <aside id="appSidebar" class="app-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-brand">
+                    <div class="brand-badge">FX</div>
+                    <div class="brand-info">
+                        <span class="brand-title">FOREX INTELLIGENCE</span>
+                        <span class="brand-sub">ENTERPRISE QUANT v7.0 · 15-MODULE</span>
+                    </div>
+                </div>
+                <button id="btnToggleSidebar" class="btn-sidebar-toggle" title="Toggle Sidebar">
+                    ≡
+                </button>
+            </div>
+
+            <div class="sidebar-nav-container">
+                <div class="nav-group">
+                    <span class="nav-group-title">Command &amp; Telemetry</span>
+                    <a href="#overview" class="sidebar-nav-item active" data-target="page-overview">
+                        <span class="nav-icon font-mono">01</span>
+                        <span class="nav-label">Executive Overview</span>
+                    </a>
+                    <a href="#sync-health" class="sidebar-nav-item" data-target="page-sync-health">
+                        <span class="nav-icon font-mono">02</span>
+                        <span class="nav-label">Live Data Sync &amp; Endpoints</span>
+                        <span class="nav-pill-badge">336</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-group-title">Macroeconomic Quant</span>
+                    <a href="#macro-scorer" class="sidebar-nav-item" data-target="page-macro-scorer">
+                        <span class="nav-icon font-mono">03</span>
+                        <span class="nav-label">6-Pillar Macro Scorer</span>
+                    </a>
+                    <a href="#pair-signals" class="sidebar-nav-item" data-target="page-pair-signals">
+                        <span class="nav-icon font-mono">04</span>
+                        <span class="nav-label">28-Pair Signals &amp; Backtest</span>
+                    </a>
+                    <a href="#scenario-engine" class="sidebar-nav-item" data-target="page-scenario-engine">
+                        <span class="nav-icon font-mono">05</span>
+                        <span class="nav-label">Predictive Scenario Engine</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-group-title">Risk &amp; Execution</span>
+                    <a href="#risk-engine" class="sidebar-nav-item" data-target="page-risk-engine">
+                        <span class="nav-icon font-mono">06</span>
+                        <span class="nav-label">Risk, Kelly &amp; Monte Carlo</span>
+                    </a>
+                    <a href="#execution" class="sidebar-nav-item" data-target="page-execution">
+                        <span class="nav-icon font-mono">07</span>
+                        <span class="nav-label">Execution Intel &amp; Replay</span>
+                    </a>
+                    <a href="#portfolio" class="sidebar-nav-item" data-target="page-portfolio">
+                        <span class="nav-icon font-mono">08</span>
+                        <span class="nav-label">Portfolio &amp; Active Trades</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-group-title">Structure &amp; Audit</span>
+                    <a href="#market-structure" class="sidebar-nav-item" data-target="page-market-structure">
+                        <span class="nav-icon font-mono">09</span>
+                        <span class="nav-label">MTF Structure &amp; Correlation</span>
+                    </a>
+                    <a href="#journal" class="sidebar-nav-item" data-target="page-journal">
+                        <span class="nav-icon font-mono">10</span>
+                        <span class="nav-label">Trading Journal &amp; Audit</span>
+                    </a>
+                    <a href="#ai-settings" class="sidebar-nav-item" data-target="page-ai-settings">
+                        <span class="nav-icon font-mono">11</span>
+                        <span class="nav-label">AI Quant Co-Pilot</span>
+                    </a>
+                </div>
+
+                <div class="nav-group">
+                    <span class="nav-group-title">v7.0 Institutional Cockpit</span>
+                    <a href="#multiyear-backtest" class="sidebar-nav-item" data-target="page-multiyear-backtest">
+                        <span class="nav-icon font-mono">12</span>
+                        <span class="nav-label">28-Pair Backtest (20-26)</span>
+                        <span class="nav-pill-badge">7Y</span>
+                    </a>
+                    <a href="#antihunt-engine" class="sidebar-nav-item" data-target="page-antihunt-engine">
+                        <span class="nav-icon font-mono">13</span>
+                        <span class="nav-label">Anti-Hunt &amp; Harvesting</span>
+                    </a>
+                    <a href="#telegram-cockpit" class="sidebar-nav-item" data-target="page-telegram-cockpit">
+                        <span class="nav-icon font-mono">14</span>
+                        <span class="nav-label">Telegram &amp; MT5 Cockpit</span>
+                        <span class="nav-pill-badge">8085</span>
+                    </a>
+                    <a href="#gemini-cockpit" class="sidebar-nav-item" data-target="page-gemini-cockpit">
+                        <span class="nav-icon font-mono">15</span>
+                        <span class="nav-label">Gemini Decision 1 Pool</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <span>Anton Kreil 6-Pillar · 42 Ind/Ccy</span>
+                <span class="text-cyan font-mono">v7.0 ALADDIN</span>
+            </div>
+        </aside>
+
+        <!-- 2. MAIN APPLICATION CONTENT -->
+        <div class="app-main-content">
+
+            <header class="app-top-header">
+                <div class="header-left-meta">
+                    <div class="view-breadcrumb">
+                        <span id="activeViewIcon" class="view-breadcrumb-icon font-mono">01</span>
+                        <span id="activeViewTitle">Executive Command Overview (336-Series &amp; Backtest)</span>
+                    </div>
+
+                    <div class="telemetry-status-group">
+                        <div id="liveSyncPill" class="live-sync-status-pill" title="Open Live Sync Telemetry Center">
+                            <span id="liveSyncDot" class="sync-dot"></span>
+                            <span id="liveSyncPillText">336 SERIES UP TO DATE</span>
+                        </div>
+                        <span id="liveSyncElapsedCounter" class="last-synced-counter">Last Synced: Just now</span>
+                    </div>
+                </div>
+
+                <div class="header-right-controls">
+                    <button id="btnForceLiveUpdate" class="btn-force-update">
+                        FORCE LIVE UPDATE
+                    </button>
+
+                    <div class="header-clock-badge">
+                        <div><span style="color: var(--text-dim);">NY: </span><span id="clockTehran" class="text-cyan">--:--:-- EST</span></div>
+                        <div style="border-left: 1px solid var(--border-subtle); padding-left: 0.5rem;"><span style="color: var(--text-dim);">UTC: </span><span id="clockUtc">--:--:-- UTC</span></div>
+                    </div>
+
+                    <select id="appThemeSelector" class="theme-dropdown" title="Select Terminal Palette">
+                        <option value="theme-cyan">Institutional Slate Cyan</option>
+                        <option value="theme-purple">Obsidian Indigo Quant</option>
+                        <option value="theme-forest">Citadel Emerald Matrix</option>
+                        <option value="theme-aladdin">BlackRock Aladdin Gold</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- LIVE BLOOMBERG / ALADDIN INSTITUTIONAL TICKER RIBBON -->
+            <div id="institutionalTickerBar" class="inst-ticker-ribbon">
+                <div class="ticker-tag">ALADDIN v7 LIVE</div>
+                <div id="instTickerTrack" class="ticker-track font-mono">
+                    <span><strong>USD</strong> +3.21 (HAWKISH EXPANSION)</span>
+                    <span><strong>AUD</strong> +3.55 (RBA 4.85%)</span>
+                    <span><strong>EURUSD</strong> 1.1243 (SELL Δ-4.88 · OTE 1.1279)</span>
+                    <span><strong>USDCAD</strong> 1.3955 (BUY Δ+4.17 · BE+2p LOCKED)</span>
+                    <span><strong>USDJPY</strong> 158.17 (BUY Δ+3.85 · H1 TRAIL ACTIVE)</span>
+                    <span><strong>2020–2026 BACKTEST</strong> 4,604 Trades · 81.36% WR · AI Hybrid PF 4.42 · Sharpe 2.14 · Sortino 4.47 · MDD 2.61%</span>
+                    <span><strong>MT5 BRIDGE (8085)</strong> HEADLESS CLOUD FEED ARMED · REALIZED PnL: +$10,530.00 USD</span>
+                </div>
+            </div>
+
+            <main id="main-workspace-viewport" class="main-workspace-viewport">
+
+                <!-- PAGE 1: EXECUTIVE COMMAND OVERVIEW -->
+                <section class="workspace-page active" id="page-overview">
+                    <div class="overview-kpi-grid">
+                        <div class="kpi-stat-card">
+                            <div class="kpi-label-row">
+                                <span>Top Macro Currency</span>
+                                <span class="inst-badge inst-badge-bull">LEADER</span>
+                            </div>
+                            <div id="ovTopMacroCcy" class="kpi-big-value text-success">USD (+3.21)</div>
+                            <div id="ovTopMacroCcySub" class="kpi-meta-sub">HAWKISH EXPANSION · Policy Rate: 4.00%</div>
+                        </div>
+
+                        <div class="kpi-stat-card">
+                            <div class="kpi-label-row">
+                                <span>Weakest Macro Currency</span>
+                                <span class="inst-badge inst-badge-bear">LAGGING</span>
+                            </div>
+                            <div id="ovWeakestCcy" class="kpi-big-value text-danger">EUR (-1.67)</div>
+                            <div id="ovWeakestCcySub" class="kpi-meta-sub">STAGFLATION TRAP · Policy Rate: 2.65%</div>
+                        </div>
+
+                        <div class="kpi-stat-card">
+                            <div class="kpi-label-row">
+                                <span>Top 7-Gate Signal Pair</span>
+                                <span class="inst-badge inst-badge-cyan">OPTIMAL</span>
+                            </div>
+                            <div id="ovTop7GatePair" class="kpi-big-value text-cyan">EURUSD (SELL @ 1.1243)</div>
+                            <div id="ovTop7GatePairSub" class="kpi-meta-sub">Signal Origin: 2026-10-30 (6d ago) | Backtest: +40p</div>
+                        </div>
+
+                        <div class="kpi-stat-card">
+                            <div class="kpi-label-row">
+                                <span>Shield &amp; Data Health</span>
+                                <span class="inst-badge inst-badge-bull">ACTIVE</span>
+                            </div>
+                            <div id="ovHealthStatus" class="kpi-big-value text-success">336 SERIES ARMED</div>
+                            <div id="ovHealthStatusSub" class="kpi-meta-sub">8 G8 Currencies x 42 Indicators · Exact Site Vintage Active</div>
+                        </div>
+                    </div>
+
+                    <div class="overview-split-grid">
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header">
+                                <div class="panel-title">Global Macro Power Rankings (G8)</div>
+                                <span class="panel-subtext font-mono">Scale: [-10.0, +10.0]</span>
+                            </div>
+                            <div style="padding: 1rem 1.25rem;">
+                                <div style="height: 250px; width: 100%;">
+                                    <svg id="ovGlobalPowerRankingsSvg" viewBox="0 0 460 250" width="100%" height="100%"></svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header">
+                                <div class="panel-title">Top 6 High-Conviction 7-Gate Signals</div>
+                                <button class="btn-table-shortcut" onclick="AppRouter.navigateTo('page-pair-signals')">
+                                    Open 28-Pair Workstation →
+                                </button>
+                            </div>
+                            <div style="padding: 0.85rem 1rem;">
+                                <div class="table-responsive">
+                                    <table class="institutional-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Pair &amp; Spot</th>
+                                                <th>Signal &amp; &Delta;Score</th>
+                                                <th>Signal Vintage</th>
+                                                <th>Backtest Audit</th>
+                                                <th>ATR SL / TP2 &amp; Size</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ovTopSignalsTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="overview-bottom-grid" style="margin-top: 1.25rem;">
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header">
+                                <div class="panel-title">Upcoming High-Impact Macro Releases (UTC Validated)</div>
+                                <span class="panel-subtext font-mono">Gate-4 News Shield</span>
+                            </div>
+                            <div id="ovUpcomingCalendarWidget" style="padding: 1rem 1.25rem;"></div>
+                        </div>
+
+                        <div class="glass-panel" style="margin-bottom: 0;">
+                            <div class="panel-header">
+                                <div class="panel-title">Live Macro Ingestion Activity Stream</div>
+                                <button class="btn-table-shortcut" onclick="AppRouter.navigateTo('page-sync-health')">
+                                    Full Telemetry Center →
+                                </button>
+                            </div>
+                            <div id="ovRecentSyncFeed" style="padding: 1rem 1.25rem;"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PAGE 2: LIVE DATA SYNC & ENDPOINTS HEALTH MONITOR -->
+                <section class="workspace-page" id="page-sync-health">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Live Macro Data Ingestion &amp; TradingEconomics 10-Section Monitor</div>
+                            <button class="btn-force-update" onclick="LiveSyncTelemetryEngine.triggerLiveSyncPipeline()">
+                                RUN IMMEDIATE RE-SCAN
+                            </button>
+                        </div>
+
+                        <div style="padding: 1.25rem;">
+                            <div class="sync-progress-bar-wrap">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; font-weight: 700;">
+                                    <span id="syncProgressStepText">Ingestion Pipeline Ready.</span>
+                                    <span id="syncProgressPercent" class="font-mono text-cyan">100%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="syncProgressFill" class="progress-fill" style="width: 100%;"></div>
+                                </div>
+                            </div>
+
+                            <div id="syncCcyStatusGrid" class="sync-currency-grid"></div>
+
+                            <div style="margin-bottom: 1.25rem;">
+                                <div style="font-size: 0.78rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.5rem;">
+                                    Real-Time Ingestion Console Log (UTC)
+                                </div>
+                                <div id="syncLiveConsole" class="sync-live-terminal"></div>
+                            </div>
+
+                            <div>
+                                <div style="font-size: 0.78rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.5rem;">
+                                    Detected Macro Indicator Revisions in Recent Scans
+                                </div>
+                                <div class="table-responsive" style="border: 1px solid var(--border-subtle); border-radius: 8px;">
+                                    <table class="institutional-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>Currency</th>
+                                                <th>Indicator Name</th>
+                                                <th>Prior Value</th>
+                                                <th>New Value</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="syncDiffTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PAGE 3: 6-PILLAR MACRO SCORER -->
+                <section class="workspace-page" id="page-macro-scorer">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Institutional Anton Kreil 6-Pillar Macro Scorer v4.0 (336 Indicators · 10 TE Sections)</div>
+                            <span class="panel-subtext font-mono">Exponential Time Decay (&lambda;=0.6931) · 1.20x Ultra-Fresh Boost</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="macroScorerMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 4: 28-PAIR SIGNALS & 7-GATE SHIELD -->
+                <section class="workspace-page" id="page-pair-signals">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Institutional 28-Pair Signal Matrix, Site Vintage Dates &amp; Chart Backtest Lab v4.0</div>
+                            <span class="panel-subtext font-mono">Dynamic Daily ATR-14 Stops · Quote-Currency $/Pip Sizing</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="pairSignalsMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 5: PREDICTIVE SCENARIO ENGINE -->
+                <section class="workspace-page" id="page-scenario-engine">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Predictive Nowcasting &amp; 3-Scenario Probability Trajectory Simulator</div>
+                            <span class="panel-subtext font-mono">Pre-Release Consensus Dispersion &amp; 48h Trajectory Cones</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="scenarioEngineMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 6: RISK, KELLY & MONTE CARLO -->
+                <section class="workspace-page" id="page-risk-engine">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Capital Allocation, Fractional Kelly &amp; 1,000-Path Monte Carlo Engine</div>
+                            <span class="panel-subtext font-mono">Dynamic 28-Pair ATR-14 &amp; Quote-Currency Pip Valuation</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="riskEngineMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 7: EXECUTION INTEL & REPLAY -->
+                <section class="workspace-page" id="page-execution">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Trade Execution Intelligence &amp; 3-Phase Institutional Replay</div>
+                            <span class="panel-subtext font-mono">Fill Quality Scoring &amp; Signal Vintage Verification</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="executionMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 8: PORTFOLIO & ACTIVE TRADES -->
+                <section class="workspace-page" id="page-portfolio">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Portfolio Multi-Currency Manager &amp; Active Positions Engine</div>
+                            <span class="panel-subtext font-mono">USD / EUR Valuation · Break-Even &amp; Partial Exit Controls</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="portfolioMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 9: MTF STRUCTURE & CORRELATION -->
+                <section class="workspace-page" id="page-market-structure">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Multi-Timeframe Market Structure &amp; 8x8 Pearson Correlation Matrix</div>
+                            <span class="panel-subtext font-mono">Daily EMA50 · H4 BOS Alignment · G8 Yield Correlation</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="marketStructureMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 10: JOURNAL & AUDIT -->
+                <section class="workspace-page" id="page-journal">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Trading Journal Analytics &amp; Strict R-Multiple Mathematical Audit</div>
+                            <span class="panel-subtext font-mono">Verified Sign(PnL) === Sign(R-Multiple) Consistency</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="journalMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 11: AI CO-PILOT & SETTINGS -->
+                <section class="workspace-page" id="page-ai-settings">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Senior Quantitative AI Co-Pilot Terminal</div>
+                            <span class="panel-subtext font-mono">336-Series Deep Context · 28-Pair Backtest Synthesis</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="aiSettingsMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 12: MULTI-YEAR 28-PAIR HISTORICAL BACKTEST (2020-2026) -->
+                <section class="workspace-page" id="page-multiyear-backtest">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Multi-Year Historical Backtesting Across All 28 Currency Pairs (2020–2026)</div>
+                            <span class="panel-subtext font-mono">Macro Squeeze (&ge;|2.5|) · 7-Gate Shield · ICT 61.8% OTE · Anti-Hunt 1.5x ATR SL</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="multiYearBacktestMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 13: DYNAMIC ANTI-HUNT STOP LOSS & PROFIT HARVESTING ENGINE -->
+                <section class="workspace-page" id="page-antihunt-engine">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Dynamic Anti-Hunt Stop Loss &amp; 4-Stage Profit Harvesting Evolution Engine</div>
+                            <span class="panel-subtext font-mono">Swing &plusmn; 1.5&times;ATR14 · +25p Breakeven (Entry+2p) · +1.5R H1 Trail · 50%/50% TP1/TP2</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="antiHuntEngineMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 14: INTERACTIVE TELEGRAM COCKPIT & MT5 MICRO-SERVICE SIMULATOR -->
+                <section class="workspace-page" id="page-telegram-cockpit">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Interactive 24/7 Telegram Cockpit &amp; MetaTrader 5 Execution Micro-Service (Port 8085)</div>
+                            <span class="panel-subtext font-mono">Pillow Dark-Mode Chart Dispatch · Inline Buttons · Headless Cloud / Local MT5 Bridge</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="telegramCockpitMountPoint"></div>
+                    </div>
+                </section>
+
+                <!-- PAGE 15: GEMINI DECISION 1 CONSENSUS POOL & CLOUD DEPLOYMENT COCKPIT -->
+                <section class="workspace-page" id="page-gemini-cockpit">
+                    <div class="glass-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">Gemini Decision 1 Multi-Key Consensus Pool, Dual Equity Curve &amp; Cloud Readiness</div>
+                            <span class="panel-subtext font-mono">Baseline PF 1.84 vs AI Hybrid PF 4.42 · Multi-Key Quota Rotation · Railway / Docker Ready</span>
+                        </div>
+                        <div style="padding: 1.25rem;" id="geminiCockpitMountPoint"></div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="js/core/suiteEngine.js"></script>
+    <script src="js/core/appRouterAndSync.js"></script>
+    <script src="js/modules/macroAndSignalsPages.js"></script>
+    <script src="js/modules/institutionalSuitePages.js"></script>
+    <script src="js/modules/appAuthAndReports.js"></script>
+    <script src="js/modules/v7_institutionalCockpitPages.js"></script>
+</body>
+</html>

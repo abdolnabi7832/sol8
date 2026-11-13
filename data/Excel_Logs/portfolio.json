@@ -1,0 +1,12 @@
+{
+  "id" : null,
+  "accountBalance" : 50000.0,
+  "equity" : 50000.0,
+  "currency" : "USD",
+  "irtExchangeRate" : 68000.0,
+  "targetMonthlyReturnPercent" : 5.0,
+  "maxAllowedDrawdownPercent" : 10.0,
+  "peakEquity" : 50000.0,
+  "currentDrawdownPercent" : 0.0,
+  "updatedAtUtc" : "2026-11-13T18:12:34.618739"
+}

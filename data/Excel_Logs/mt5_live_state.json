@@ -1,0 +1,34 @@
+{
+  "account": {
+    "connected": false,
+    "error": "Account Info Unavailable",
+    "config": {
+      "login": "57452535486",
+      "server": "GTCGlobalTrade-Demo",
+      "terminal_path": "C:\\Program Files\\GTC Global Trade MetaTrader 5\\terminal64.exe",
+      "has_password": true,
+      "auto_connect": true,
+      "magic_number": 786609,
+      "is_connected": true,
+      "last_error": null
+    }
+  },
+  "positions": [],
+  "events": [
+    "[2026-11-13 18:12:10] \ud83d\ude80 MT5 Cockpit Engine initialized.",
+    "[2026-11-13 18:12:10] \u2601\ufe0f Connected to Cloud Headless Gateway: #57452535486 (GTC Demo $100.00) | Railway 24/7 Container Mode Active.",
+    "[2026-11-13 18:12:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:13:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:14:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:15:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:16:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:17:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:18:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:19:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:20:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:21:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:22:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5.",
+    "[2026-11-13 18:23:11] \ud83d\udcc8 Real Candlestick Cache synchronized: 0/28 pairs updated from MT5."
+  ],
+  "timestamp": "2026-11-13T18:24:08.119979"
+}

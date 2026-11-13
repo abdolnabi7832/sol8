@@ -1,0 +1,46 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.built-jar-path
+
+### VS Code ###
+.vscode/
+
+### Operating System ###
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### Application Data & Builds ###
+data/h2db/
+data/Excel_Logs/*.tmp
+data/Excel_Logs/*.pending_sync
+*gemini_keys.json
+backend-java/target/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.zip
