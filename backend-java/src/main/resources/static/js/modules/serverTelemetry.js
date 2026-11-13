@@ -177,3 +177,4 @@ const ServerTelemetryEngine = {
 document.addEventListener('DOMContentLoaded', () => {
     ServerTelemetryEngine.init();
 });
+
