@@ -814,53 +814,117 @@ class MT5CockpitEngine:
             "equity_curve": equity_curve[-60:]
         }
 
-    def get_real_candles(self, symbol: str, timeframe: str = "D1", count: int = 60) -> list:
-        if not self.ensure_connected():
-            return []
+    def fetch_live_web_candles(self, symbol: str, timeframe: str = "D1", count: int = 60) -> list:
         symbol = symbol.upper()
+        interval_map = {"M1": "1m", "M5": "5m", "M15": "15m", "M30": "30m", "H1": "60m", "H4": "1h", "D1": "1d", "W1": "1wk"}
+        range_map = {"M1": "1d", "M5": "5d", "M15": "5d", "M30": "1mo", "H1": "1mo", "H4": "3mo", "D1": "6mo", "W1": "2y"}
+        interval = interval_map.get(timeframe.upper(), "1d")
+        rng = range_map.get(timeframe.upper(), "6mo")
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}=X?range={rng}&interval={interval}"
         try:
-            mt5.symbol_select(symbol, True)
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                d = json.loads(resp.read().decode())
+                res = d['chart']['result'][0]
+                timestamps = res.get('timestamp', [])
+                quotes = res['indicators']['quote'][0]
+                candles = []
+                is_jpy = "JPY" in symbol
+                dec = 3 if is_jpy else 5
+                valid = []
+                for i in range(len(timestamps)):
+                    c = quotes.get('close', [])[i] if i < len(quotes.get('close', [])) else None
+                    o = quotes.get('open', [])[i] if i < len(quotes.get('open', [])) else None
+                    h = quotes.get('high', [])[i] if i < len(quotes.get('high', [])) else None
+                    l = quotes.get('low', [])[i] if i < len(quotes.get('low', [])) else None
+                    v = quotes.get('volume', [])[i] if i < len(quotes.get('volume', [])) else 0
+                    if c is not None and o is not None and h is not None and l is not None:
+                        valid.append((timestamps[i], o, h, l, c, v or 0))
+                
+                valid = valid[-count:]
+                if not valid:
+                    return []
+                ema20 = ema50 = valid[0][4]
+                k20, k50 = 2.0 / 21.0, 2.0 / 51.0
+                total_n = len(valid)
+                for idx, (ts, o, h, l, c, v) in enumerate(valid):
+                    ema20 = c * k20 + ema20 * (1.0 - k20)
+                    ema50 = c * k50 + ema50 * (1.0 - k50)
+                    dt_format = "%Y-%m-%d" if timeframe.upper() in ("D1", "W1") else "%Y-%m-%d %H:%M"
+                    dt_str = datetime.datetime.fromtimestamp(ts, datetime.timezone.utc).strftime(dt_format)
+                    days_ago = total_n - 1 - idx
+                    candles.append({
+                        "daysAgo": days_ago,
+                        "date": dt_str,
+                        "time": dt_str,
+                        "open": round(float(o), dec),
+                        "high": round(float(h), dec),
+                        "low": round(float(l), dec),
+                        "close": round(float(c), dec),
+                        "ema20": round(float(ema20), dec),
+                        "ema50": round(float(ema50), dec),
+                        "volume": int(v)
+                    })
+                return candles
         except Exception:
-            pass
-
-        tf_map = {
-            "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
-            "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4,
-            "D1": mt5.TIMEFRAME_D1, "W1": mt5.TIMEFRAME_W1
-        }
-        mt5_tf = tf_map.get(timeframe.upper(), mt5.TIMEFRAME_D1)
-        rates = mt5.copy_rates_from_pos(symbol, mt5_tf, 0, count)
-        if rates is None or len(rates) == 0:
             return []
 
-        res = []
-        ema20 = float(rates[0]['close'])
-        ema50 = float(rates[0]['close'])
-        k20 = 2.0 / 21.0
-        k50 = 2.0 / 51.0
-        total_n = len(rates)
-        dec = 3 if "JPY" in symbol else 5
+    def get_real_candles(self, symbol: str, timeframe: str = "D1", count: int = 60) -> list:
+        symbol = symbol.upper()
+        # 1. If native MT5 is connected, query MT5 directly
+        if HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
+            try:
+                mt5.symbol_select(symbol, True)
+                tf_map = {
+                    "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
+                    "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1, "H4": mt5.TIMEFRAME_H4,
+                    "D1": mt5.TIMEFRAME_D1, "W1": mt5.TIMEFRAME_W1
+                }
+                mt5_tf = tf_map.get(timeframe.upper(), mt5.TIMEFRAME_D1)
+                rates = mt5.copy_rates_from_pos(symbol, mt5_tf, 0, count)
+                if rates is not None and len(rates) > 0:
+                    res = []
+                    ema20 = float(rates[0]['close'])
+                    ema50 = float(rates[0]['close'])
+                    k20, k50 = 2.0 / 21.0, 2.0 / 51.0
+                    total_n = len(rates)
+                    dec = 3 if "JPY" in symbol else 5
+                    for idx, r in enumerate(rates):
+                        cl = float(r['close'])
+                        ema20 = cl * k20 + ema20 * (1.0 - k20)
+                        ema50 = cl * k50 + ema50 * (1.0 - k50)
+                        dt_format = "%Y-%m-%d" if timeframe.upper() in ("D1", "W1") else "%Y-%m-%d %H:%M"
+                        dt = datetime.datetime.fromtimestamp(r['time']).strftime(dt_format)
+                        days_ago = total_n - 1 - idx
+                        res.append({
+                            "daysAgo": days_ago,
+                            "date": dt,
+                            "time": dt,
+                            "open": round(float(r['open']), dec),
+                            "high": round(float(r['high']), dec),
+                            "low": round(float(r['low']), dec),
+                            "close": round(cl, dec),
+                            "ema20": round(ema20, dec),
+                            "ema50": round(ema50, dec),
+                            "volume": int(r['tick_volume'])
+                        })
+                    return res
+            except Exception:
+                pass
 
-        for idx, r in enumerate(rates):
-            cl = float(r['close'])
-            ema20 = cl * k20 + ema20 * (1.0 - k20)
-            ema50 = cl * k50 + ema50 * (1.0 - k50)
-            dt_format = "%Y-%m-%d" if timeframe.upper() in ("D1", "W1") else "%Y-%m-%d %H:%M"
-            dt = datetime.datetime.fromtimestamp(r['time']).strftime(dt_format)
-            days_ago = total_n - 1 - idx
-            res.append({
-                "daysAgo": days_ago,
-                "date": dt,
-                "time": dt,
-                "open": round(float(r['open']), dec),
-                "high": round(float(r['high']), dec),
-                "low": round(float(r['low']), dec),
-                "close": round(cl, dec),
-                "ema20": round(ema20, dec),
-                "ema50": round(ema50, dec),
-                "volume": int(r['tick_volume'])
-            })
-        return res
+        # 2. Check local synced CANDLES_FILE cache
+        if timeframe.upper() == "D1" and os.path.exists(CANDLES_FILE):
+            try:
+                with open(CANDLES_FILE, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                c_map = cached_data.get("candles", {})
+                if symbol in c_map and len(c_map[symbol]) > 0:
+                    return c_map[symbol][-count:]
+            except Exception:
+                pass
+
+        # 3. Live Web Institutional Gateway Fallback (Zero Dependencies, works seamlessly on Cloud/Railway)
+        return self.fetch_live_web_candles(symbol, timeframe, count)
 
     STANDARD_28_PAIRS = [
         'EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDJPY', 'USDCHF', 'USDCAD',
@@ -871,9 +935,6 @@ class MT5CockpitEngine:
     ]
 
     def sync_all_28_pairs_candles(self, count: int = 60) -> dict:
-        if not self.ensure_connected():
-            return {}
-
         output = {
             "updated_at": datetime.datetime.now().isoformat(),
             "source": "MetaTrader5 Institutional Feed",
@@ -883,45 +944,60 @@ class MT5CockpitEngine:
             "candles": {}
         }
 
-        for p in self.STANDARD_28_PAIRS:
+        # 1. Native MT5 sync if connected
+        if HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
+            for p in self.STANDARD_28_PAIRS:
+                try:
+                    mt5.symbol_select(p, True)
+                    tick = mt5.symbol_info_tick(p)
+                    if tick:
+                        output["rates"][p] = round(tick.bid, 5 if "JPY" not in p else 3)
+                    rates = mt5.copy_rates_from_pos(p, mt5.TIMEFRAME_D1, 0, count)
+                    if rates is not None and len(rates) > 0:
+                        c_list = []
+                        ema20 = float(rates[0]['close'])
+                        ema50 = float(rates[0]['close'])
+                        k20, k50 = 2.0 / 21.0, 2.0 / 51.0
+                        total_n = len(rates)
+                        dec = 3 if "JPY" in p else 5
+                        for idx, r in enumerate(rates):
+                            cl = float(r['close'])
+                            ema20 = cl * k20 + ema20 * (1.0 - k20)
+                            ema50 = cl * k50 + ema50 * (1.0 - k50)
+                            dt = datetime.datetime.fromtimestamp(r['time']).strftime('%Y-%m-%d')
+                            days_ago = total_n - 1 - idx
+                            c_list.append({
+                                'daysAgo': days_ago,
+                                'date': dt,
+                                'open': round(float(r['open']), dec),
+                                'high': round(float(r['high']), dec),
+                                'low': round(float(r['low']), dec),
+                                'close': round(cl, dec),
+                                'ema20': round(ema20, dec),
+                                'ema50': round(ema50, dec),
+                                'volume': int(r['tick_volume'])
+                            })
+                        output["candles"][p] = c_list
+                except Exception as e:
+                    print(f"[Candle Sync Warning] {p}: {e}", flush=True)
+
+        # 2. If Cloud/Headless mode or MT5 not returning candles: load existing CANDLES_FILE
+        if len(output["candles"]) < 20 and os.path.exists(CANDLES_FILE):
             try:
-                mt5.symbol_select(p, True)
-                tick = mt5.symbol_info_tick(p)
-                if tick:
-                    output["rates"][p] = round(tick.bid, 5 if "JPY" not in p else 3)
-                rates = mt5.copy_rates_from_pos(p, mt5.TIMEFRAME_D1, 0, count)
-                if rates is not None and len(rates) > 0:
-                    c_list = []
-                    ema20 = float(rates[0]['close'])
-                    ema50 = float(rates[0]['close'])
-                    k20 = 2.0 / 21.0
-                    k50 = 2.0 / 51.0
-                    total_n = len(rates)
-                    for idx, r in enumerate(rates):
-                        cl = float(r['close'])
-                        ema20 = cl * k20 + ema20 * (1.0 - k20)
-                        ema50 = cl * k50 + ema50 * (1.0 - k50)
-                        dt = datetime.datetime.fromtimestamp(r['time']).strftime('%Y-%m-%d')
-                        days_ago = total_n - 1 - idx
-                        c_list.append({
-                            'daysAgo': days_ago,
-                            'date': dt,
-                            'open': round(float(r['open']), 5 if 'JPY' not in p else 3),
-                            'high': round(float(r['high']), 5 if 'JPY' not in p else 3),
-                            'low': round(float(r['low']), 5 if 'JPY' not in p else 3),
-                            'close': round(cl, 5 if 'JPY' not in p else 3),
-                            'ema20': round(ema20, 5 if 'JPY' not in p else 3),
-                            'ema50': round(ema50, 5 if 'JPY' not in p else 3),
-                            'volume': int(r['tick_volume'])
-                        })
-                    output["candles"][p] = c_list
-            except Exception as e:
-                print(f"[Candle Sync Warning] {p}: {e}", flush=True)
+                with open(CANDLES_FILE, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                if cached.get("candles") and len(cached["candles"]) >= 20:
+                    output["rates"] = cached.get("rates", output["rates"])
+                    output["candles"] = cached.get("candles", output["candles"])
+                    output["source"] = cached.get("source", output["source"])
+            except Exception:
+                pass
 
         try:
-            with open(CANDLES_FILE, "w", encoding="utf-8") as f:
-                json.dump(output, f, indent=2)
-            self.log_event(f"📈 Real Candlestick Cache synchronized: {len(output['candles'])}/28 pairs updated from MT5.")
+            if len(output["candles"]) > 0:
+                with open(CANDLES_FILE, "w", encoding="utf-8") as f:
+                    json.dump(output, f, indent=2)
+                self.log_event(f"📈 Candlestick Cache synchronized: {len(output['candles'])}/28 pairs updated.")
         except Exception as e:
             print(f"[Candle Save Error] {e}", flush=True)
 

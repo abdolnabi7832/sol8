@@ -45,7 +45,10 @@ public class MarketDataController {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> data = objectMapper.readValue(file, Map.class);
-                return ResponseEntity.ok(data);
+                Map<?, ?> candles = (Map<?, ?>) data.get("candles");
+                if (candles != null && !candles.isEmpty()) {
+                    return ResponseEntity.ok(data);
+                }
             } catch (Exception e) {
                 log.warn("[MarketData] Error reading {}: {}", CANDLES_PATH, e.getMessage());
             }
@@ -55,7 +58,7 @@ public class MarketDataController {
         try {
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(MT5_DAEMON_URL))
-                    .timeout(Duration.ofMillis(1200))
+                    .timeout(Duration.ofSeconds(4))
                     .GET()
                     .build();
             HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
@@ -78,7 +81,7 @@ public class MarketDataController {
                 Map<String, Object> data = objectMapper.readValue(file, Map.class);
                 @SuppressWarnings("unchecked")
                 Map<String, Object> rates = (Map<String, Object>) data.get("rates");
-                if (rates != null) {
+                if (rates != null && !rates.isEmpty()) {
                     return ResponseEntity.ok(rates);
                 }
             } catch (Exception ignored) {}
@@ -92,37 +95,41 @@ public class MarketDataController {
             @RequestParam(required = false, defaultValue = "D1") String timeframe,
             @RequestParam(required = false, defaultValue = "60") int count) {
         
-        // 1. If non-D1 requested or dynamic query, try MT5 daemon
-        if (!"D1".equalsIgnoreCase(timeframe) || count != 60) {
-            try {
-                String daemonUrl = "http://127.0.0.1:8085/api/mt5/candles?symbol=" + pair.toUpperCase() 
-                        + "&timeframe=" + timeframe.toUpperCase() + "&count=" + count;
-                HttpRequest req = HttpRequest.newBuilder()
-                        .uri(URI.create(daemonUrl))
-                        .timeout(Duration.ofMillis(1500))
-                        .GET()
-                        .build();
-                HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-                if (resp.statusCode() == 200) {
-                    Object data = objectMapper.readValue(resp.body(), Object.class);
-                    return ResponseEntity.ok(data);
-                }
-            } catch (Exception ignored) {}
+        // 1. If D1 requested, check local cache first
+        if ("D1".equalsIgnoreCase(timeframe)) {
+            File file = new File(CANDLES_PATH);
+            if (file.exists() && file.length() > 100) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> data = objectMapper.readValue(file, Map.class);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> candlesMap = (Map<String, Object>) data.get("candles");
+                    if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
+                        Object list = candlesMap.get(pair.toUpperCase());
+                        if (list instanceof java.util.List && !((java.util.List<?>) list).isEmpty()) {
+                            return ResponseEntity.ok(list);
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
         }
 
-        // 2. Default: Read from local mt5_candles.json cache
-        File file = new File(CANDLES_PATH);
-        if (file.exists() && file.length() > 100) {
-            try {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> data = objectMapper.readValue(file, Map.class);
-                @SuppressWarnings("unchecked")
-                Map<String, Object> candlesMap = (Map<String, Object>) data.get("candles");
-                if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
-                    return ResponseEntity.ok(candlesMap.get(pair.toUpperCase()));
-                }
-            } catch (Exception ignored) {}
-        }
+        // 2. Query MT5 daemon for real/live timeframe candles (H4, H1, etc.)
+        try {
+            String daemonUrl = "http://127.0.0.1:8085/api/mt5/candles?symbol=" + pair.toUpperCase() 
+                    + "&timeframe=" + timeframe.toUpperCase() + "&count=" + count;
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(daemonUrl))
+                    .timeout(Duration.ofSeconds(4))
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() == 200) {
+                Object data = objectMapper.readValue(resp.body(), Object.class);
+                return ResponseEntity.ok(data);
+            }
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(Collections.emptyList());
     }
 }
