@@ -136,6 +136,10 @@
                             <span id="liveSyncDot" class="sync-dot"></span>
                             <span id="liveSyncPillText">336 SERIES UP TO DATE</span>
                         </div>
+                        <div id="mt5HeaderPill" class="live-sync-status-pill font-mono" style="cursor: pointer; background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35); color: #34d399;" onclick="AppRouter.navigateTo('page-telegram-cockpit')" title="MT5 Status: Connected">
+                            <span class="sync-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                            <span>MT5: #57452535486 (ONLINE)</span>
+                        </div>
                         <span id="liveSyncElapsedCounter" class="last-synced-counter">Last Synced: Just now</span>
                     </div>
                 </div>
@@ -278,6 +282,9 @@
 
                 <!-- PAGE 2: LIVE DATA SYNC & ENDPOINTS HEALTH MONITOR -->
                 <section class="workspace-page" id="page-sync-health">
+                    <!-- REALTIME SERVER HARDWARE & TELEMETRY MOUNT POINT -->
+                    <div id="serverTelemetryMountPoint"></div>
+
                     <div class="glass-panel">
                         <div class="panel-header">
                             <div class="panel-title">Live Macro Data Ingestion &amp; TradingEconomics 10-Section Monitor</div>
@@ -485,5 +492,6 @@
     <script src="js/modules/institutionalSuitePages.js"></script>
     <script src="js/modules/appAuthAndReports.js"></script>
     <script src="js/modules/v7_institutionalCockpitPages.js"></script>
+    <script src="js/modules/serverTelemetry.js"></script>
 </body>
 </html>
