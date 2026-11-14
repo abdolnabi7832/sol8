@@ -90,6 +90,9 @@ public class PortfolioTradingController {
         ActiveTradeEntity saved = activeTradeRepository.save(trade);
         syncService.syncAllFiles();
 
+        // Dispatch live order to MT5 daemon bridge
+        dispatchOrderToMt5Daemon(saved.getPair(), saved.getDirection(), saved.getLotSize());
+
         try {
             telegramService.notifyPositionOpened(
                     saved.getPair(),
@@ -137,6 +140,9 @@ public class PortfolioTradingController {
         tradeJournalRepository.save(journal);
 
         syncService.syncAllFiles();
+
+        // Dispatch close to MT5 daemon bridge
+        dispatchCloseToMt5Daemon(trade.getTradeId(), "Web UI Close");
 
         try {
             String outcome = (journal.getPnlUsd() != null && journal.getPnlUsd() >= 0) ? "WIN (سود)" : "LOSS (زیان)";
@@ -272,5 +278,42 @@ public class PortfolioTradingController {
                 req.tradesPerSimulation() > 0 ? req.tradesPerSimulation() : 100
         );
         return ResponseEntity.ok(result);
+    }
+
+    private void dispatchOrderToMt5Daemon(String symbol, String action, Double volume) {
+        if (symbol == null || action == null) return;
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String url = String.format("http://127.0.0.1:8085/api/mt5/order?symbol=%s&action=%s&volume=%.2f",
+                    java.net.URLEncoder.encode(symbol, java.nio.charset.StandardCharsets.UTF_8),
+                    java.net.URLEncoder.encode(action, java.nio.charset.StandardCharsets.UTF_8),
+                    volume != null ? volume : 0.01);
+
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(3))
+                    .GET()
+                    .build();
+            client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        } catch (Exception ignored) {}
+    }
+
+    private void dispatchCloseToMt5Daemon(String ticket, String reason) {
+        if (ticket == null) return;
+        try {
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String cleanTicket = ticket.replaceAll("[^0-9]", "");
+            if (cleanTicket.isEmpty()) cleanTicket = "0";
+            String url = String.format("http://127.0.0.1:8085/api/mt5/close?ticket=%s&reason=%s",
+                    cleanTicket,
+                    java.net.URLEncoder.encode(reason != null ? reason : "Web UI Close", java.nio.charset.StandardCharsets.UTF_8));
+
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(3))
+                    .GET()
+                    .build();
+            client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+        } catch (Exception ignored) {}
     }
 }

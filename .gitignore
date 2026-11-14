@@ -44,3 +44,6 @@ __pycache__/
 *.pyo
 *.log
 *.zip
+
+mt5server.exe
+
