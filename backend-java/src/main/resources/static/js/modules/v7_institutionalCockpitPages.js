@@ -783,7 +783,6 @@
             `;
         }
     };
-    };
 
     window.MultiYearBacktestPage = MultiYearBacktestPage;
     window.AntiHuntEnginePage = AntiHuntEnginePage;

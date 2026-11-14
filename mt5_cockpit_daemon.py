@@ -1804,9 +1804,14 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(length).decode('utf-8') if length > 0 else '{}'
         try:
-            params = json.loads(body)
+            params = json.loads(body) if body and body.strip() else {}
         except Exception:
             params = {}
+        if parsed.query:
+            q_params = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+            for k, v in q_params.items():
+                if k not in params:
+                    params[k] = v
 
         if path == "/api/mt5/config":
             res = self.engine.update_credentials(params)

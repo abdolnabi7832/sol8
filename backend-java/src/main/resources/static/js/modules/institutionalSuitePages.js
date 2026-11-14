@@ -511,18 +511,22 @@
                 if (window._fxSuite && window._fxSuite.showToastNotice) {
                     window._fxSuite.showToastNotice(`Dispatching ${action} ${volume} ${pair} to MetaTrader 5...`, 'info', 2000);
                 }
-                const resp = await fetch(`/api/v1/market/mt5/order?symbol=${pair}&action=${action}&volume=${volume}`, { method: 'POST' });
+                const resp = await fetch('/api/v1/market/mt5/order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: pair, action: action, volume: Number(volume) || 0.01 })
+                });
                 const res = await resp.json();
                 if (res.success || res.status === 'SUCCESS' || res.ticket) {
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
                         window._fxSuite.showToastNotice(`Order executed on MT5! Ticket: #${res.ticket || res.order || 'Live'}`, 'success', 3500);
                     }
-                    setTimeout(() => this.syncLiveMt5Data(), 1000);
+                    setTimeout(() => this.syncLiveMt5Data(), 800);
                 } else {
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
                         window._fxSuite.showToastNotice(`Execution notice: ${res.error || res.message || 'Dispatched to Broker'}`, 'info', 3000);
                     }
-                    setTimeout(() => this.syncLiveMt5Data(), 1500);
+                    setTimeout(() => this.syncLiveMt5Data(), 1200);
                 }
             } catch(e) {
                 if (window._fxSuite && window._fxSuite.showToastNotice) {
@@ -561,7 +565,11 @@
 
         async fullCloseToJournal(id) {
             try {
-                await fetch(`/api/v1/active-trades/${id}`, { method: 'DELETE' });
+                await fetch('/api/v1/market/mt5/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket: id, reason: 'خروج دستی از پرتال وب' })
+                });
             } catch(e) {}
             this.syncLiveMt5Data();
         },

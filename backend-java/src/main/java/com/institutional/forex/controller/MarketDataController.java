@@ -215,5 +215,69 @@ public class MarketDataController {
         } catch (Exception ignored) {}
         return ResponseEntity.ok(List.of());
     }
+
+    @PostMapping("/mt5/order")
+    public ResponseEntity<?> placeMt5Order(@RequestBody(required = false) Map<String, Object> body,
+                                           @RequestParam(required = false) String symbol,
+                                           @RequestParam(required = false) String action,
+                                           @RequestParam(required = false) Double volume,
+                                           @RequestParam(required = false) Double sl_pips,
+                                           @RequestParam(required = false) Double tp_pips) {
+        try {
+            Map<String, Object> payload = new java.util.HashMap<>();
+            if (body != null) {
+                payload.putAll(body);
+            }
+            if (symbol != null) payload.put("symbol", symbol);
+            if (action != null) payload.put("action", action);
+            if (volume != null) payload.put("volume", volume);
+            if (sl_pips != null) payload.put("sl_pips", sl_pips);
+            if (tp_pips != null) payload.put("tp_pips", tp_pips);
+
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://127.0.0.1:8085/api/mt5/order"))
+                    .timeout(Duration.ofSeconds(6))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return ResponseEntity.status(resp.statusCode())
+                    .header("Content-Type", "application/json")
+                    .body(resp.body());
+        } catch (Exception e) {
+            log.error("[MT5 Order Proxy Error] {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/mt5/close")
+    public ResponseEntity<?> closeMt5Order(@RequestBody(required = false) Map<String, Object> body,
+                                           @RequestParam(required = false) Long ticket,
+                                           @RequestParam(required = false) String reason) {
+        try {
+            Map<String, Object> payload = new java.util.HashMap<>();
+            if (body != null) {
+                payload.putAll(body);
+            }
+            if (ticket != null) payload.put("ticket", ticket);
+            if (reason != null) payload.put("reason", reason);
+
+            String jsonPayload = objectMapper.writeValueAsString(payload);
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://127.0.0.1:8085/api/mt5/close"))
+                    .timeout(Duration.ofSeconds(6))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return ResponseEntity.status(resp.statusCode())
+                    .header("Content-Type", "application/json")
+                    .body(resp.body());
+        } catch (Exception e) {
+            log.error("[MT5 Close Proxy Error] {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
 }
 
