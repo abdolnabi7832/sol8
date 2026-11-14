@@ -45,7 +45,10 @@ IS_HEADLESS_MODE = (
 import socket
 import urllib.request
 import urllib.parse
-from http.server import HTTPServer, BaseHTTPRequestHandler
+try:
+    from http.server import ThreadingHTTPServer as HTTPServer, BaseHTTPRequestHandler
+except ImportError:
+    from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from PIL import Image, ImageDraw, ImageFont
 
@@ -1515,7 +1518,7 @@ class MT5CockpitEngine:
             self.save_tracked_positions()
 
         self.log_event(f"🔒 Position Closed: #{ticket} ({symbol}) @ {close_price} | PnL: {net_pnl:+.2f} USD ({pips:+.1f}p)")
-        self.handle_closed_trade_alert(ticket, pos, close_price, reason, net_pnl=net_pnl)
+        threading.Thread(target=self.handle_closed_trade_alert, args=(ticket, pos, close_price, reason, net_pnl), daemon=True).start()
         return {"success": True, "profit": net_pnl, "pips": round(pips, 1)}
 
     def handle_closed_trade_alert(self, ticket: int, pos_data: dict, close_price: float, reason: str, net_pnl: float = None):

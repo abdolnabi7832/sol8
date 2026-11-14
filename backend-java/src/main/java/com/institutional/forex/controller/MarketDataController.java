@@ -36,7 +36,7 @@ public class MarketDataController {
     public MarketDataController(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(800))
+                .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
