@@ -167,7 +167,7 @@ public class MarketDataController {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(6))
+                    .timeout(Duration.ofSeconds(15))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
@@ -177,14 +177,20 @@ public class MarketDataController {
                 Map<String, Object> resMap = objectMapper.readValue(resp.body(), Map.class);
                 return ResponseEntity.ok(resMap);
             }
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> errMap = objectMapper.readValue(resp.body(), Map.class);
+                return ResponseEntity.status(resp.statusCode()).body(errMap);
+            } catch (Exception ignored) {
+                return ResponseEntity.status(resp.statusCode()).body(Map.of("success", false, "error", resp.body()));
+            }
         } catch (Exception e) {
             log.error("[MT5 Order Proxy Error] {}", e.getMessage());
+            return ResponseEntity.status(502).body(Map.of(
+                    "success", false,
+                    "error", "خطا در ارتباط با سرور متاتریدر ۵: " + (e.getMessage() != null ? e.getMessage() : "Timeout")
+            ));
         }
-
-        return ResponseEntity.status(502).body(Map.of(
-                "success", false,
-                "error", "MT5 Daemon on 8085 unreachable"
-        ));
     }
 
     @GetMapping("/mt5/status")
@@ -240,7 +246,7 @@ public class MarketDataController {
             String jsonPayload = objectMapper.writeValueAsString(payload);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://127.0.0.1:8085/api/mt5/close"))
-                    .timeout(Duration.ofSeconds(6))
+                    .timeout(Duration.ofSeconds(15))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();

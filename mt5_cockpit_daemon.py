@@ -1396,13 +1396,8 @@ class MT5CockpitEngine:
             self.save_tracked_positions()
             self.log_event(f"🎯 Execution Placed (Cloud Standby Simulator): {action} {volume} {symbol} @ {price} | Ticket #{ticket} | Dynamic Anti-Hunt SL: {sl}")
 
-        # Generate chart photo & dispatch Telegram Photo + Message
+        # Generate chart photo & dispatch Telegram Photo + Message asynchronously in background
         chart_path = os.path.join(LOGS_DIR, f"chart_{symbol}_{ticket}.png")
-        try:
-            render_chart_snapshot(symbol=symbol, action=action, entry=price, sl=sl, tp1=tp, tp2=anti_hunt["tp2"], atr_pips=anti_hunt["atr_pips"], out_path=chart_path)
-        except Exception as ex:
-            print(f"[Chart Render Warning] {ex}", flush=True)
-
         caption = (
             f"⚡ <b>[پوزیشن جدید MT5 با حد ضرر ضد هانت]</b>\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
@@ -1419,11 +1414,18 @@ class MT5CockpitEngine:
             f"🔒 <i>ریسک‌فری خودکار پس از رسیدن به +25 پیپ فعال است.</i>"
         )
 
-        sent = False
-        if os.path.exists(chart_path):
-            sent = dispatch_telegram_photo(chart_path, caption, reply_markup=TELEGRAM_INLINE_KEYBOARD)
-        if not sent:
-            dispatch_telegram_alert(caption, reply_markup=TELEGRAM_INLINE_KEYBOARD)
+        def _async_notify():
+            try:
+                render_chart_snapshot(symbol=symbol, action=action, entry=price, sl=sl, tp1=tp, tp2=anti_hunt["tp2"], atr_pips=anti_hunt["atr_pips"], out_path=chart_path)
+                sent = False
+                if os.path.exists(chart_path):
+                    sent = dispatch_telegram_photo(chart_path, caption, reply_markup=TELEGRAM_DRAWER_KEYBOARD)
+                if not sent:
+                    dispatch_telegram_alert(caption, reply_markup=TELEGRAM_DRAWER_KEYBOARD)
+            except Exception as ex:
+                print(f"[Async Notification Exception] {ex}", flush=True)
+
+        threading.Thread(target=_async_notify, daemon=True).start()
 
         return {"success": True, "status": "SUCCESS", "ticket": ticket, "order": ticket, "deal": ticket, "symbol": symbol, "action": action, "volume": volume, "price": price, "sl": sl, "tp": tp, "mode": exec_mode}
 
@@ -1575,7 +1577,7 @@ class MT5CockpitEngine:
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
                 f"⏱️ <i>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>"
             )
-            dispatch_telegram_alert(msg, reply_markup=TELEGRAM_INLINE_KEYBOARD)
+            threading.Thread(target=lambda: dispatch_telegram_alert(msg, reply_markup=TELEGRAM_DRAWER_KEYBOARD), daemon=True).start()
         except Exception as e:
             print(f"[Closed Alert Dispatch Error] {e}", flush=True)
 
@@ -1642,7 +1644,7 @@ class MT5CockpitEngine:
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"⏱️ <i>{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>"
         )
-        dispatch_telegram_alert(be_msg, reply_markup=TELEGRAM_INLINE_KEYBOARD)
+        threading.Thread(target=lambda: dispatch_telegram_alert(be_msg, reply_markup=TELEGRAM_DRAWER_KEYBOARD), daemon=True).start()
         return {"success": True, "message": "Profit secured & Breakeven set"}
 
     def position_management_loop(self):
