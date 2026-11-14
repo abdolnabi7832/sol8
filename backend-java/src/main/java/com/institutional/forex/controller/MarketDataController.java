@@ -158,7 +158,7 @@ public class MarketDataController {
         Number tp = (Number) body.get("tp_pips");
 
         try {
-            String url = String.format("http://127.0.0.1:8085/api/mt5/order?symbol=%s&action=%s&volume=%.2f",
+            String url = String.format(java.util.Locale.US, "http://127.0.0.1:8085/api/mt5/order?symbol=%s&action=%s&volume=%.2f",
                     URLEncoder.encode(sym, StandardCharsets.UTF_8),
                     URLEncoder.encode(act, StandardCharsets.UTF_8),
                     vol.doubleValue());
@@ -178,16 +178,12 @@ public class MarketDataController {
                 return ResponseEntity.ok(resMap);
             }
         } catch (Exception e) {
-            log.warn("[MT5 Order Proxy Error] {}", e.getMessage());
+            log.error("[MT5 Order Proxy Error] {}", e.getMessage());
         }
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "ticket", 881290 + (int)(System.currentTimeMillis() % 10000),
-                "symbol", sym,
-                "action", act,
-                "volume", vol,
-                "mode", "CLOUD_HYBRID"
+        return ResponseEntity.status(502).body(Map.of(
+                "success", false,
+                "error", "MT5 Daemon on 8085 unreachable"
         ));
     }
 

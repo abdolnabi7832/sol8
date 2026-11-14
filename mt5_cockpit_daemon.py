@@ -429,10 +429,28 @@ class MT5CockpitEngine:
         self.is_connected = False
         self.last_connect_error = None
         self.managed_positions_state = {}
-        self.tracked_positions = {}  # ticket -> dict of position details
+        self.positions_file = os.path.join(LOGS_DIR, "active_positions.json")
+        self.tracked_positions = self.load_tracked_positions()
         self.event_logs = []
         self.cached_candles = {}
         self.log_event("🚀 MT5 Cockpit Engine initialized.")
+
+    def load_tracked_positions(self) -> dict:
+        if os.path.exists(self.positions_file):
+            try:
+                with open(self.positions_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return {int(k): v for k, v in data.items()}
+            except Exception:
+                pass
+        return {}
+
+    def save_tracked_positions(self):
+        try:
+            with open(self.positions_file, "w", encoding="utf-8") as f:
+                json.dump(self.tracked_positions, f, indent=2)
+        except Exception:
+            pass
 
     def log_event(self, message: str):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -674,12 +692,32 @@ class MT5CockpitEngine:
 
     def compute_dynamic_anti_hunt(self, symbol: str, action: str, entry_price: float) -> dict:
         symbol = symbol.upper()
-        s_info = mt5.symbol_info(symbol)
-        digits = s_info.digits if s_info else 5
-        point = s_info.point if s_info else 0.0001
-        pip_unit = point * (10 if digits in (3, 5) else 1)
+        is_jpy = "JPY" in symbol
+        digits = 3 if is_jpy else 5
+        point = 0.001 if is_jpy else 0.00001
+        pip_unit = 0.01 if is_jpy else 0.0001
 
-        rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 30)
+        rates = None
+        if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
+            try:
+                s_info = mt5.symbol_info(symbol)
+                if s_info:
+                    digits = s_info.digits
+                    point = s_info.point
+                    pip_unit = point * (10 if digits in (3, 5) else 1)
+                rates = mt5.copy_rates_from_pos(symbol, mt5.TIMEFRAME_H4, 0, 30)
+            except Exception:
+                rates = None
+
+        if rates is None and os.path.exists(CANDLES_FILE):
+            try:
+                with open(CANDLES_FILE, "r", encoding="utf-8") as f:
+                    c_data = json.load(f)
+                    candles = c_data.get("candles", {}).get(symbol, [])
+                    if len(candles) >= 15:
+                        rates = [{'high': float(c['high']), 'low': float(c['low']), 'close': float(c['close'])} for c in candles[-30:]]
+            except Exception:
+                rates = None
         atr_pips = 60.0
         buffer_pips = 20.0
         swing_ref = entry_price
@@ -747,68 +785,105 @@ class MT5CockpitEngine:
         }
 
     def get_live_positions(self) -> list:
-        if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
-            return getattr(self, "cloud_positions", [])
-
-        if not self.ensure_connected():
-            return []
-        positions = mt5.positions_get()
-        if not positions:
-            return []
-
         result = []
-        for p in positions:
-            pos = p._asdict()
-            ticket = pos['ticket']
-            symbol = pos['symbol']
-            pos_type = "BUY" if pos['type'] == 0 else "SELL"
-            open_price = pos['price_open']
-            curr_price = pos['price_current']
-            sl = pos['sl']
-            tp = pos['tp']
-            vol = pos['volume']
-            profit = round(pos['profit'], 2)
-            swap = round(pos['swap'], 2)
+        if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
+            try:
+                positions = mt5.positions_get()
+                if positions:
+                    for p in positions:
+                        pos = p._asdict()
+                        ticket = pos['ticket']
+                        symbol = pos['symbol']
+                        pos_type = "BUY" if pos['type'] == 0 else "SELL"
+                        open_price = pos['price_open']
+                        curr_price = pos['price_current']
+                        sl = pos['sl']
+                        tp = pos['tp']
+                        vol = pos['volume']
+                        profit = round(pos['profit'], 2)
+                        swap = round(pos['swap'], 2)
 
-            s_info = mt5.symbol_info(symbol)
-            point = s_info.point if s_info else 0.0001
-            digits = s_info.digits if s_info else 5
-            pip_unit = point * (10 if digits in (3, 5) else 1)
+                        s_info = mt5.symbol_info(symbol)
+                        point = s_info.point if s_info else 0.0001
+                        digits = s_info.digits if s_info else 5
+                        pip_unit = point * (10 if digits in (3, 5) else 1)
 
-            pips_profit = (curr_price - open_price) / pip_unit if pos_type == "BUY" else (open_price - curr_price) / pip_unit
+                        pips_profit = (curr_price - open_price) / pip_unit if pos_type == "BUY" else (open_price - curr_price) / pip_unit
 
+                        sl_dist = abs(open_price - sl) if sl > 0 else 0
+                        r_multiple = round(((curr_price - open_price) if pos_type == "BUY" else (open_price - curr_price)) / sl_dist, 2) if sl_dist > 0 else 0.0
+
+                        result.append({
+                            "ticket": ticket,
+                            "symbol": symbol,
+                            "type": pos_type,
+                            "action": pos_type,
+                            "volume": vol,
+                            "open_price": round(open_price, digits),
+                            "price_open": round(open_price, digits),
+                            "current_price": round(curr_price, digits),
+                            "price_current": round(curr_price, digits),
+                            "sl": round(sl, digits),
+                            "tp": round(tp, digits),
+                            "swap": swap,
+                            "profit": profit,
+                            "pips_profit": round(pips_profit, 1),
+                            "r_multiple": r_multiple,
+                            "status": "OPEN",
+                            "comment": pos.get('comment', ''),
+                            "magic": pos.get('magic', 0),
+                            "time": datetime.datetime.fromtimestamp(pos['time']).strftime("%Y-%m-%d %H:%M:%S")
+                        })
+            except Exception as e:
+                self.log_event(f"⚠️ Native positions fetch notice: {e}")
+
+        # Merge with tracked positions (persisted live orders)
+        for t, pos in self.tracked_positions.items():
+            if any(x["ticket"] == t for x in result):
+                continue
+            symbol = pos.get("symbol", "EURUSD")
+            is_buy = pos.get("type", 0) == 0 or pos.get("action", "BUY") == "BUY"
+            pos_type = "BUY" if is_buy else "SELL"
+            open_price = float(pos.get("price_open", pos.get("open_price", 1.0)))
+            curr_price = open_price
+            if os.path.exists(CANDLES_FILE):
+                try:
+                    with open(CANDLES_FILE, "r", encoding="utf-8") as f:
+                        cd = json.load(f)
+                        if symbol in cd.get("rates", {}):
+                            curr_price = float(cd["rates"][symbol])
+                except Exception:
+                    pass
+            digits = 3 if "JPY" in symbol else 5
+            pip_unit = 0.01 if "JPY" in symbol else 0.0001
+            pips_profit = (curr_price - open_price) / pip_unit if is_buy else (open_price - curr_price) / pip_unit
+            vol = float(pos.get("volume", 0.01))
+            profit = round(pips_profit * vol * 10.0, 2)
+            sl = float(pos.get("sl", 0.0))
+            tp = float(pos.get("tp", 0.0))
             sl_dist = abs(open_price - sl) if sl > 0 else 0
-            if sl_dist > 0:
-                profit_dist = (curr_price - open_price) if pos_type == "BUY" else (open_price - curr_price)
-                r_multiple = round(profit_dist / sl_dist, 2)
-            else:
-                r_multiple = 0.0
-
-            state = self.managed_positions_state.get(ticket, {'be_set': False, 'tp1_banked': False})
-            if state.get('tp1_banked'):
-                status_label = "PROFIT_SAVED"
-            elif state.get('be_set') or (sl > 0 and ((pos_type == "BUY" and sl >= open_price) or (pos_type == "SELL" and sl <= open_price))):
-                status_label = "BREAKEVEN_LOCKED"
-            else:
-                status_label = "OPEN"
+            r_multiple = round(((curr_price - open_price) if is_buy else (open_price - curr_price)) / sl_dist, 2) if sl_dist > 0 else 0.0
 
             result.append({
-                "ticket": ticket,
+                "ticket": t,
                 "symbol": symbol,
                 "type": pos_type,
+                "action": pos_type,
                 "volume": vol,
                 "open_price": round(open_price, digits),
+                "price_open": round(open_price, digits),
                 "current_price": round(curr_price, digits),
+                "price_current": round(curr_price, digits),
                 "sl": round(sl, digits),
                 "tp": round(tp, digits),
-                "swap": swap,
+                "swap": 0.0,
                 "profit": profit,
                 "pips_profit": round(pips_profit, 1),
                 "r_multiple": r_multiple,
-                "status": status_label,
-                "comment": pos.get('comment', ''),
-                "magic": pos.get('magic', 0),
-                "time": datetime.datetime.fromtimestamp(pos['time']).strftime("%Y-%m-%d %H:%M:%S")
+                "status": "OPEN",
+                "comment": pos.get("comment", "QuantFX-Live"),
+                "magic": pos.get("magic", self.magic_number),
+                "time": pos.get("time", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             })
 
         return result
@@ -1190,6 +1265,7 @@ class MT5CockpitEngine:
                 "comment": "QuantFX-CloudEngine v7.0"
             }
             self.tracked_positions[ticket] = pos_obj
+            self.save_tracked_positions()
             self.log_event(f"🎯 Execution Success (Cloud Gateway): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic Anti-Hunt SL: {sl}")
 
         # Generate chart photo & dispatch Telegram Photo + Message
@@ -1221,7 +1297,7 @@ class MT5CockpitEngine:
         if not sent:
             dispatch_telegram_alert(caption, reply_markup=TELEGRAM_INLINE_KEYBOARD)
 
-        return {"success": True, "order": ticket, "deal": ticket, "price": price, "sl": sl, "tp": tp, "mode": exec_mode}
+        return {"success": True, "status": "SUCCESS", "ticket": ticket, "order": ticket, "deal": ticket, "symbol": symbol, "action": action, "volume": volume, "price": price, "sl": sl, "tp": tp, "mode": exec_mode}
 
     def close_position(self, ticket: int, reason: str = "خروج دستی کاربر") -> dict:
         if not self.ensure_connected():
@@ -1306,6 +1382,7 @@ class MT5CockpitEngine:
         self.cloud_equity = self.cloud_balance
         if ticket in self.tracked_positions:
             del self.tracked_positions[ticket]
+            self.save_tracked_positions()
 
         self.log_event(f"🔒 Position Closed: #{ticket} ({symbol}) @ {close_price} | PnL: {net_pnl:+.2f} USD ({pips:+.1f}p)")
         self.handle_closed_trade_alert(ticket, pos, close_price, reason, net_pnl=net_pnl)
@@ -1793,6 +1870,32 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             self._set_cors_headers()
             self.wfile.write(json.dumps(self.engine.get_sanitized_config()).encode("utf-8"))
 
+        elif path == "/api/mt5/order":
+            sym = str(query.get("symbol", ["EURUSD"])[0]).upper()
+            act = str(query.get("action", ["BUY"])[0]).upper()
+            try:
+                vol = float(query.get("volume", [0.01])[0])
+            except Exception:
+                vol = 0.01
+            sl = float(query.get("sl_pips")[0]) if "sl_pips" in query and query.get("sl_pips")[0] else None
+            tp = float(query.get("tp_pips")[0]) if "tp_pips" in query and query.get("tp_pips")[0] else None
+            res = self.engine.execute_order(sym, act, vol, sl, tp)
+            self._set_cors_headers()
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+
+        elif path == "/api/mt5/close":
+            ticket = int(query.get("ticket", [0])[0]) if "ticket" in query and str(query.get("ticket")[0]).isdigit() else 0
+            reason = query.get("reason", ["خروج دستی از داشبورد وب"])[0]
+            res = self.engine.close_position(ticket, reason)
+            self._set_cors_headers()
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+
+        elif path == "/api/mt5/save-profit":
+            ticket = int(query.get("ticket", [0])[0]) if "ticket" in query and str(query.get("ticket")[0]).isdigit() else 0
+            res = self.engine.save_profit_and_breakeven(ticket)
+            self._set_cors_headers()
+            self.wfile.write(json.dumps(res).encode("utf-8"))
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -1831,11 +1934,14 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             }).encode("utf-8"))
 
         elif path == "/api/mt5/order":
-            sym = params.get("symbol", "EURUSD")
-            act = params.get("action", "BUY")
-            vol = float(params.get("volume", 0.01))
-            sl = float(params.get("sl_pips")) if "sl_pips" in params else None
-            tp = float(params.get("tp_pips")) if "tp_pips" in params else None
+            sym = str(params.get("symbol", "EURUSD")).upper()
+            act = str(params.get("action", "BUY")).upper()
+            try:
+                vol = float(params.get("volume", 0.01))
+            except Exception:
+                vol = 0.01
+            sl = float(params.get("sl_pips")) if "sl_pips" in params and params["sl_pips"] is not None else None
+            tp = float(params.get("tp_pips")) if "tp_pips" in params and params["tp_pips"] is not None else None
             res = self.engine.execute_order(sym, act, vol, sl, tp)
             self._set_cors_headers()
             self.wfile.write(json.dumps(res).encode("utf-8"))

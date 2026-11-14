@@ -521,12 +521,13 @@
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
                         window._fxSuite.showToastNotice(`Order executed on MT5! Ticket: #${res.ticket || res.order || 'Live'}`, 'success', 3500);
                     }
+                    await this.syncLiveMt5Data();
                     setTimeout(() => this.syncLiveMt5Data(), 800);
                 } else {
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
                         window._fxSuite.showToastNotice(`Execution notice: ${res.error || res.message || 'Dispatched to Broker'}`, 'info', 3000);
                     }
-                    setTimeout(() => this.syncLiveMt5Data(), 1200);
+                    await this.syncLiveMt5Data();
                 }
             } catch(e) {
                 if (window._fxSuite && window._fxSuite.showToastNotice) {
