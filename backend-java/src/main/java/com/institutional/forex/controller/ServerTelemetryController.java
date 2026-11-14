@@ -137,7 +137,8 @@ public class ServerTelemetryController {
             java.net.http.HttpResponse<String> resp = client.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                Map<?, ?> d = mapper.readValue(resp.body(), Map.class);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> d = mapper.readValue(resp.body(), Map.class);
                 boolean isConnected = Boolean.TRUE.equals(d.get("connected"));
                 boolean isCloud = Boolean.TRUE.equals(d.get("is_cloud_gateway"));
                 mt5Status.put("status", isConnected ? "CONNECTED" : "CONNECTING");
@@ -146,9 +147,11 @@ public class ServerTelemetryController {
                 mt5Status.put("name", String.valueOf(d.getOrDefault("name", "Mohammad Nekookar")));
                 mt5Status.put("broker", String.valueOf(d.getOrDefault("company", "GTC Global Trade Capital Ltd")));
                 mt5Status.put("server", String.valueOf(d.getOrDefault("server", "GTCGlobalTrade-Demo")));
-                mt5Status.put("balance", String.format("$%.2f", ((Number) d.getOrDefault("balance", 100.0)).doubleValue()));
-                mt5Status.put("equity", String.format("$%.2f", ((Number) d.getOrDefault("equity", 100.0)).doubleValue()));
-                mt5Status.put("leverage", "1:" + d.getOrDefault("leverage", 500));
+                double bal = d.get("balance") instanceof Number ? ((Number) d.get("balance")).doubleValue() : 100.0;
+                double eq = d.get("equity") instanceof Number ? ((Number) d.get("equity")).doubleValue() : 100.0;
+                mt5Status.put("balance", String.format("$%.2f", bal));
+                mt5Status.put("equity", String.format("$%.2f", eq));
+                mt5Status.put("leverage", "1:" + d.getOrDefault("leverage", "500"));
                 mt5Status.put("pingMs", 14);
             } else {
                 throw new Exception("HTTP " + resp.statusCode());
