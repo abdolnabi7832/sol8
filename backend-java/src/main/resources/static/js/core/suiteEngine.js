@@ -481,7 +481,7 @@
         evaluate28Pairs(currencyScores, calendarEvents, userSettings = {}) {
             const results = [];
             const now = new Date('2026-11-05T10:00:00Z');
-            const accountBalance = Number(userSettings.accountBalance || 50000);
+            const accountBalance = Number(userSettings.accountBalance || 100);
             const riskPct = Number(userSettings.riskPerTradePercent || 1.0);
 
             STANDARD_28_PAIRS.forEach((pair) => {
@@ -893,7 +893,7 @@
         portfolioCurrencyMode: 'USD',
         simulationActive: false,
         userSettings: {
-            accountBalance: 50000.0,
+            accountBalance: 100.0,
             irtExchangeRate: 92000.0,
             riskPerTradePercent: 1.0,
             winRate: 0.62,
@@ -952,7 +952,7 @@
 
     SuiteState.calendarEvents = defaultInstitutionalCalendar;
     rebuildMacroAndSignalsState();
-    SuiteState.monteCarloResult = MathEngine.simulateMonteCarlo(50000, 0.62, 2.5, 1.0, 10.0, 1000, 100);
+    SuiteState.monteCarloResult = MathEngine.simulateMonteCarlo(100, 0.62, 2.5, 1.0, 10.0, 1000, 100);
 
     const EventBus = new InstitutionalEventBus();
 

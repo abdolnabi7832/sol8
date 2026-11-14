@@ -139,7 +139,7 @@ public class PairSignalMatrixEngine {
     ) {}
 
     public List<PairSignal> evaluateAll28Pairs() {
-        return evaluateAll28Pairs(LocalDateTime.now(), 50000.0, 1.0, 2.0);
+        return evaluateAll28Pairs(LocalDateTime.now(), 100.0, 1.0, 2.0);
     }
 
     public List<PairSignal> evaluateAll28Pairs(LocalDateTime referenceTimeUtc,

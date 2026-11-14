@@ -12,10 +12,10 @@ public class PortfolioEntity {
     private Long id;
 
     @Column(name = "account_balance", nullable = false)
-    private Double accountBalance = 50000.0;
+    private Double accountBalance = 100.0;
 
     @Column(name = "equity", nullable = false)
-    private Double equity = 50000.0;
+    private Double equity = 100.0;
 
     @Column(name = "currency", nullable = false, length = 8)
     private String currency = "USD";
@@ -30,7 +30,7 @@ public class PortfolioEntity {
     private Double maxAllowedDrawdownPercent = 10.0;
 
     @Column(name = "peak_equity")
-    private Double peakEquity = 50000.0;
+    private Double peakEquity = 100.0;
 
     @Column(name = "current_drawdown_percent")
     private Double currentDrawdownPercent = 0.0;
