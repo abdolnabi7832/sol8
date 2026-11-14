@@ -145,6 +145,7 @@
                 </div>
 
                 <div class="header-right-controls">
+                    <div id="authHeaderWidget"></div>
                     <button id="btnForceLiveUpdate" class="btn-force-update">
                         FORCE LIVE UPDATE
                     </button>
@@ -484,14 +485,91 @@
         </div>
     </div>
 
+    <!-- AUTHENTICATION & SECURITY MODALS -->
+    <div id="authModal" class="modal-backdrop-blur" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(5, 11, 22, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); align-items: center; justify-content: center; padding: 1.5rem;">
+        <div class="auth-card" style="width: 100%; max-width: 440px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(56, 189, 248, 0.15); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.1)); padding: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); text-align: center; position: relative;">
+                <button id="authModalCloseBtn" onclick="AppAuth.closeAuthModal()" style="display: none; position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">✕</button>
+                <div style="width: 52px; height: 52px; margin: 0 auto 0.75rem auto; border-radius: 12px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; color: #38bdf8;">
+                    🔒
+                </div>
+                <h2 style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0 0 0.35rem 0; letter-spacing: -0.02em;">INSTITUTIONAL ACCESS GATE</h2>
+                <div style="font-size: 0.82rem; color: #94a3b8; font-family: monospace;">Forex Intelligence v7.0 · MetaTrader 5 Bridge</div>
+            </div>
+
+            <form onsubmit="AppAuth.handleLogin(event)" style="padding: 1.75rem;">
+                <div id="authErrorMessage" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.82rem; margin-bottom: 1.25rem; text-align: right; direction: rtl;"></div>
+
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.05em;">Username (نام کاربری)</label>
+                    <input id="authUsernameInput" type="text" required placeholder="admin" style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.75rem 1rem; color: #f8fafc; font-size: 0.95rem; font-family: monospace; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='rgba(148, 163, 184, 0.25)'">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.05em;">Password (رمز عبور)</label>
+                    <input id="authPasswordInput" type="password" required placeholder="••••••••" style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.75rem 1rem; color: #f8fafc; font-size: 0.95rem; font-family: monospace; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='rgba(148, 163, 184, 0.25)'">
+                </div>
+
+                <button id="btnSubmitLogin" type="submit" style="width: 100%; padding: 0.85rem; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; font-weight: 800; font-size: 0.92rem; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35); transition: opacity 0.2s;">
+                    AUTHENTICATE &amp; ENTER (ورود امن)
+                </button>
+
+                <div style="margin-top: 1rem; text-align: center; font-size: 0.75rem; color: #64748b;">
+                    کلمه عبور پیش‌فرض: <code style="color: #38bdf8; background: rgba(56,189,248,0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">admin / admin</code> (قابل تغییر از تنظیمات)
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CHANGE CREDENTIALS MODAL -->
+    <div id="changeCredsModal" class="modal-backdrop-blur" style="display: none; position: fixed; inset: 0; z-index: 99999; background: rgba(5, 11, 22, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); align-items: center; justify-content: center; padding: 1.5rem;">
+        <div class="auth-card" style="width: 100%; max-width: 440px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(99, 102, 241, 0.1)); padding: 1.25rem 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.25rem;">⚙️</span>
+                    <h3 style="font-size: 1.05rem; font-weight: 800; color: #f8fafc; margin: 0;">تنظیم رمز عبور و نام کاربری</h3>
+                </div>
+                <button onclick="AppAuth.closeChangeCredentialsModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.25rem; cursor: pointer;">✕</button>
+            </div>
+
+            <form onsubmit="AppAuth.handleChangeCredentials(event)" style="padding: 1.5rem;">
+                <div id="changeCredsError" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.82rem; margin-bottom: 1.25rem; text-align: right; direction: rtl;"></div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">رمز عبور فعلی (جهت تایید)</label>
+                    <input id="changeCredsCurrentPass" type="password" required style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.65rem 0.9rem; color: #f8fafc; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">نام کاربری جدید</label>
+                    <input id="changeCredsNewUser" type="text" required style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.65rem 0.9rem; color: #f8fafc; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">رمز عبور جدید</label>
+                    <input id="changeCredsNewPass" type="password" required minlength="3" style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.65rem 0.9rem; color: #f8fafc; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem;">تکرار رمز عبور جدید</label>
+                    <input id="changeCredsConfirmPass" type="password" required minlength="3" style="width: 100%; box-sizing: border-box; background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 8px; padding: 0.65rem 0.9rem; color: #f8fafc; font-size: 0.9rem; outline: none;">
+                </div>
+
+                <button id="btnSubmitChangeCreds" type="submit" style="width: 100%; padding: 0.8rem; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; font-weight: 800; font-size: 0.9rem; border: none; border-radius: 8px; cursor: pointer;">
+                    💾 ذخیره تغییرات
+                </button>
+            </form>
+        </div>
+    </div>
+
     <div id="toastContainer" class="toast-container"></div>
 
-    <script src="js/core/suiteEngine.js?v=7.1.0"></script>
-    <script src="js/core/appRouterAndSync.js?v=7.1.0"></script>
-    <script src="js/modules/macroAndSignalsPages.js?v=7.1.0"></script>
-    <script src="js/modules/institutionalSuitePages.js?v=7.1.0"></script>
-    <script src="js/modules/appAuthAndReports.js?v=7.1.0"></script>
-    <script src="js/modules/v7_institutionalCockpitPages.js?v=7.1.0"></script>
-    <script src="js/modules/serverTelemetry.js?v=7.1.0"></script>
+    <script src="js/core/suiteEngine.js?v=7.2.0"></script>
+    <script src="js/core/appRouterAndSync.js?v=7.2.0"></script>
+    <script src="js/modules/macroAndSignalsPages.js?v=7.2.0"></script>
+    <script src="js/modules/institutionalSuitePages.js?v=7.2.0"></script>
+    <script src="js/modules/appAuthAndReports.js?v=7.2.0"></script>
+    <script src="js/modules/v7_institutionalCockpitPages.js?v=7.2.0"></script>
+    <script src="js/modules/serverTelemetry.js?v=7.2.0"></script>
 </body>
 </html>

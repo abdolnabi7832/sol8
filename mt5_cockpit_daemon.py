@@ -886,7 +886,8 @@ class MT5CockpitEngine:
 
     def fetch_live_web_candles(self, symbol: str, timeframe: str = "D1", count: int = 60) -> list:
         symbol = symbol.upper()
-        interval_map = {"M1": "1m", "M5": "5m", "M15": "15m", "M30": "30m", "H1": "60m", "H4": "1h", "D1": "1d", "W1": "1wk"}
+        is_h4 = timeframe.upper() == "H4"
+        interval_map = {"M1": "1m", "M5": "5m", "M15": "15m", "M30": "30m", "H1": "60m", "H4": "60m", "D1": "1d", "W1": "1wk"}
         range_map = {"M1": "1d", "M5": "5d", "M15": "5d", "M30": "1mo", "H1": "1mo", "H4": "3mo", "D1": "6mo", "W1": "2y"}
         interval = interval_map.get(timeframe.upper(), "1d")
         rng = range_map.get(timeframe.upper(), "6mo")
@@ -911,6 +912,19 @@ class MT5CockpitEngine:
                     if c is not None and o is not None and h is not None and l is not None:
                         valid.append((timestamps[i], o, h, l, c, v or 0))
                 
+                if is_h4 and len(valid) >= 4:
+                    h4_valid = []
+                    for k in range(0, len(valid) - 3, 4):
+                        chunk = valid[k:k+4]
+                        ts_open = chunk[0][0]
+                        open_p = chunk[0][1]
+                        high_p = max(item[2] for item in chunk)
+                        low_p = min(item[3] for item in chunk)
+                        close_p = chunk[-1][4]
+                        vol = sum(item[5] for item in chunk)
+                        h4_valid.append((ts_open, open_p, high_p, low_p, close_p, vol))
+                    valid = h4_valid
+
                 valid = valid[-count:]
                 if not valid:
                     return []
