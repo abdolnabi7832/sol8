@@ -525,6 +525,31 @@ class MT5CockpitEngine:
         if not self.is_connected:
             return self.connect()
         if getattr(self, "is_cloud_mode", False):
+            # If on Linux in cloud mode, attempt connecting to Wine mt5linux every 10 seconds!
+            now = time.time()
+            if sys.platform != "win32" and (now - getattr(self, "_last_cloud_retry", 0) > 10):
+                self._last_cloud_retry = now
+                try:
+                    from mt5linux import MetaTrader5 as mt5_linux
+                    global mt5, HAS_MT5_LIB
+                    test_mt5 = mt5_linux(host="127.0.0.1", port=18812)
+                    if test_mt5.initialize():
+                        login = int(self.creds.get("login", 0)) if str(self.creds.get("login", "")).isdigit() else 57452535486
+                        password = str(self.creds.get("password", "")).strip()
+                        server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
+                        if login and password:
+                            test_mt5.login(login=login, password=password, server=server)
+                        acc = test_mt5.account_info()
+                        if acc and acc.login:
+                            mt5 = test_mt5
+                            HAS_MT5_LIB = True
+                            self.is_connected = True
+                            self.is_cloud_mode = False
+                            self.last_connect_error = None
+                            self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({acc.company}) | Balance: ${acc.balance:.2f} | Leverage: 1:{acc.leverage}")
+                            return True
+                except Exception:
+                    pass
             return True
         if HAS_MT5_LIB and mt5:
             try:
@@ -1063,6 +1088,9 @@ class MT5CockpitEngine:
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
             try:
                 s_info = mt5.symbol_info(symbol)
+                if not s_info:
+                    mt5.symbol_select(symbol, True)
+                    s_info = mt5.symbol_info(symbol)
                 if s_info:
                     if not s_info.visible:
                         mt5.symbol_select(symbol, True)

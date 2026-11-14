@@ -32,13 +32,9 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sour
         python3-pip \
         python3-pil \
         curl \
-        wget \
         procps \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
-
-# Download standalone mt5server.exe bridge (19.4 MB) directly in cloud
-RUN wget -q https://github.com/lucas-campagna/mt5linux/releases/download/server-1.1.1/mt5server.exe -O /app/mt5server.exe
 
 # Install Python requirements (including mt5linux & rpyc)
 COPY requirements.txt /app/requirements.txt

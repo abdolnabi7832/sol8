@@ -9,6 +9,7 @@ export DISPLAY=:99
 export WINEDEBUG=-all
 export WINEPREFIX=/root/.wine
 export WINEARCH=win64
+export WINEDLLOVERRIDES="mscoree,mshtml="
 
 # 1. Start Xvfb Virtual Framebuffer
 echo "🖥️  Starting Xvfb Virtual Framebuffer on :99..."
@@ -23,15 +24,23 @@ if [ ! -f /app/mt5/terminal64.exe ]; then
     echo "✅ MT5 Terminal unpacked successfully."
 fi
 
+# Detect Wine executable
+WINE_BIN=$(command -v wine64 || command -v wine)
+echo "🍷 Using Wine binary: $WINE_BIN"
+
 # 3. Launch MetaTrader 5 Terminal64 in Portable Mode with GTC Demo Auto-Login
 echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
-wine64 /app/mt5/terminal64.exe /portable /config:/app/mt5/start.ini &
+$WINE_BIN /app/mt5/terminal64.exe /portable /config:/app/mt5/start.ini &
 sleep 5
 
 # 4. Launch mt5server.exe RPyC Bridge
-if [ -f /app/mt5server.exe ]; then
+if [ -f /app/mt5/mt5server.exe ]; then
     echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-    wine64 /app/mt5server.exe -p 18812 &
+    $WINE_BIN /app/mt5/mt5server.exe -p 18812 &
+    sleep 3
+elif [ -f /app/mt5server.exe ]; then
+    echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
+    $WINE_BIN /app/mt5server.exe -p 18812 &
     sleep 3
 fi
 
