@@ -25,11 +25,6 @@ if [ ! -f /app/mt5/terminal64.exe ]; then
     echo "✅ MT5 Terminal unpacked successfully."
 fi
 
-# Ensure mt5server.exe exists in /app/mt5
-if [ -f /app/mt5server.exe ] && [ ! -f /app/mt5/mt5server.exe ]; then
-    cp /app/mt5server.exe /app/mt5/mt5server.exe
-fi
-
 # Detect Wine executable
 WINE_BIN=""
 for candidate in "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
