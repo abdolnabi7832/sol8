@@ -174,7 +174,18 @@ const ServerTelemetryEngine = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    ServerTelemetryEngine.init();
+window.ServerTelemetryEngine = ServerTelemetryEngine;
+
+window.addEventListener('fx:viewChanged', (e) => {
+    if (e.detail && e.detail.pageId === 'page-sync-health') {
+        ServerTelemetryEngine.render();
+    }
 });
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ServerTelemetryEngine.init());
+} else {
+    ServerTelemetryEngine.init();
+}
+
 
