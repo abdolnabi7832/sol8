@@ -32,6 +32,8 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sour
         python3 \
         python3-pip \
         python3-pil \
+        fonts-dejavu-core \
+        fonts-liberation \
         curl \
         procps \
         ca-certificates && \

@@ -368,7 +368,7 @@
     // ==========================================================================
     const TelegramCockpitPage = {
         activeButton: 'btn_balance',
-        selectedPair: 'USDCAD',
+        selectedPair: 'EURUSD',
 
         init() {
             this.mountPoint = document.getElementById('telegramCockpitMountPoint');
@@ -403,45 +403,71 @@
                 const lev = (window.PortfolioPage && window.PortfolioPage.accountInfo) ? window.PortfolioPage.accountInfo.leverage : 500;
                 alertBodyHtml = `
                     <div class="font-mono" style="font-size: 0.8rem; line-height: 1.75; color: #f8fafc;">
-                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">🏛 INSTITUTIONAL PORTFOLIO LEDGER (GTC BROKER MT5 :8085)</div>
-                        <div>• Account Number: <strong style="color: #38bdf8;">#${acc}</strong> (${srv})</div>
-                        <div>• Leverage Ratio: <strong>1:${lev}</strong></div>
-                        <div>• Live Net Balance: <strong style="color: #10b981;">$${Number(bal).toFixed(2)} USD</strong></div>
-                        <div>• Net Equity: <strong class="text-cyan">$${Number(eq).toFixed(2)} USD</strong></div>
-                        <div>• Floating Open Profit: <strong class="text-success">$0.00 USD (0.0 pips)</strong></div>
-                        <div>• Execution Bridge: <span class="inst-badge inst-badge-bull">WINE_MT5_LIVE_EXECUTION</span></div>
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">💼 [استعلام زنده بالانس و وضعیت حساب MT5]</div>
+                        <div>🏦 بروکر: <strong>GTC Global Trade Capital</strong></div>
+                        <div>🎫 شماره لاگین: <strong style="color: #38bdf8;">#${acc}</strong> (${srv})</div>
+                        <div>⚙️ لوریج: <strong>1:${lev}</strong></div>
+                        <div>💰 موجودی (Balance): <strong style="color: #10b981;">$${Number(bal).toFixed(2)} USD</strong></div>
+                        <div>⚖️ اکوئیتی (Equity): <strong class="text-cyan">$${Number(eq).toFixed(2)} USD</strong></div>
+                        <div>📊 سود/زیان شناور: <strong class="text-success">+$0.00 USD (0.0 pips)</strong></div>
+                        <div>🛡️ مارجین آزاد: <strong>$${Number(bal).toFixed(2)} USD</strong></div>
+                        <div>📈 پوزیشن‌های فعال: <strong>${(window.PortfolioPage && window.PortfolioPage.activeTrades) ? window.PortfolioPage.activeTrades.length : 0}</strong></div>
                     </div>
                 `;
             } else if (this.activeButton === 'btn_positions') {
                 const pos = (window.PortfolioPage && window.PortfolioPage.activeTrades) ? window.PortfolioPage.activeTrades : [];
                 alertBodyHtml = `
                     <div class="font-mono" style="font-size: 0.78rem; line-height: 1.7; color: #f8fafc;">
-                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">🛡 ACTIVE ANTI-HUNT POSITIONS (${pos.length} OPEN ON BROKER)</div>
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">📊 [گزارش پوزیشن‌های باز MT5] (${pos.length} معامله زنده)</div>
                         ${pos.length === 0 ? `
-                            <div style="color: var(--text-dim); padding: 0.5rem 0;">No active positions open on account #57452535486. Ready for order execution.</div>
+                            <div style="color: #34d399; padding: 0.5rem 0;">🟢 در حال حاضر هیچ پوزیشن بازی روی حساب فعال نیست.<br><span style="color: var(--text-dim); font-size: 0.73rem;">موتور کوانتومی در حال رصد ۲۸ جفت‌ارز برای بهترین نقطه ورود OTE است.</span></div>
                         ` : pos.map((tr, i) => `
-                            <div>${i + 1}. <strong>#${tr.id} ${tr.pair} ${tr.direction} ${Number(tr.lots).toFixed(2)}L</strong> | Entry: ${Number(tr.entryPrice).toFixed(5)} &rarr; Spot: ${Number(tr.currentPrice).toFixed(5)} | SL: ${Number(tr.sl).toFixed(5)} | <strong class="${tr.pnlUsd >= 0 ? 'text-success' : 'text-danger'}">${tr.pnlUsd >= 0 ? '+' : ''}$${Number(tr.pnlUsd).toFixed(2)} USD</strong></div>
+                            <div>${i + 1}. <strong>#${tr.id} ${tr.pair} ${tr.direction} ${Number(tr.lots).toFixed(2)}L</strong> | ورود: ${Number(tr.entryPrice).toFixed(5)} &rarr; فعلی: ${Number(tr.currentPrice).toFixed(5)} | SL: ${Number(tr.sl).toFixed(5)} | <strong class="${tr.pnlUsd >= 0 ? 'text-success' : 'text-danger'}">${tr.pnlUsd >= 0 ? '+' : ''}$${Number(tr.pnlUsd).toFixed(2)} USD</strong></div>
                         `).join('')}
                     </div>
                 `;
             } else if (this.activeButton === 'btn_chart') {
                 alertBodyHtml = `
                     <div class="font-mono" style="font-size: 0.78rem; line-height: 1.65; color: #f8fafc;">
-                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">🕯 PILLOW (PIL) DARK-MODE CANDLESTICK DISPATCH (${p.pair})</div>
-                        <div>• Spot: <strong>${p.spotPrice}</strong> | 61.8% OTE Entry: <strong class="text-cyan">${p.ote618EntryPrice}</strong></div>
-                        <div>• Anti-Hunt SL (Swing &plusmn; 1.5&times;ATR14): <strong class="text-danger">${p.antiHuntSlPrice} (${p.antiHuntSlPips}p)</strong></div>
-                        <div>• Breakeven Lock (+25p &rarr; Entry+2p): <strong class="text-warning">${p.breakevenLockPrice}</strong></div>
-                        <div>• TP1 (50% Bank): <strong class="text-success">${p.tp1Price}</strong> | TP2 (50% Runner): <strong class="text-success">${p.tp2Price}</strong></div>
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">📸 [چارت تحلیلی زنده نهادی TradingView — ${p.pair}]</div>
+                        <div>💎 تایم‌فریم: <strong>H4 · ICT OTE 61.8%</strong></div>
+                        <div>🟢 نقطه ورود بهینه: <strong class="text-cyan">${p.ote618EntryPrice}</strong> | اسپات فعلی: <strong>${p.spotPrice}</strong></div>
+                        <div>🛡️ حد ضرر ضد هانت: <strong class="text-danger">${p.antiHuntSlPrice} (${p.antiHuntSlPips}p)</strong></div>
+                        <div>🎯 تارگت اول TP1: <strong class="text-success">${p.tp1Price}</strong> | تارگت دونده TP2: <strong class="text-success">${p.tp2Price}</strong></div>
+                        <div>🌊 بافر ضد هانتینگ استاپ‌ها: <span style="color: #f43f5e;">1.5 &times; ATR(14)</span> پشت سوئینگ نهادی</div>
                     </div>
                 `;
-            } else {
+            } else if (this.activeButton === 'btn_signals') {
                 alertBodyHtml = `
                     <div class="font-mono" style="font-size: 0.78rem; line-height: 1.7; color: #f8fafc;">
-                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">🎯 TOP 7-GATE + ICT 61.8% OTE SNIPER SIGNALS</div>
-                        <div>1. <strong>AUDNZD ULTRA-SAFE BUY</strong> | &Delta;Score: +5.69 | OTE: 1.2368 | WR: 83.2% | PF: 4.58</div>
-                        <div>2. <strong>EURUSD ULTRA-SAFE SELL</strong> | &Delta;Score: -4.88 | OTE: 1.1279 | WR: 82.8% | PF: 4.46</div>
-                        <div>3. <strong>USDCAD ULTRA-SAFE BUY</strong> | &Delta;Score: +4.17 | OTE: 1.3892 | WR: 84.1% | PF: 4.52</div>
-                        <div>4. <strong>USDJPY STRONG BUY</strong> | &Delta;Score: +3.85 | OTE: 157.32 | WR: 81.9% | PF: 4.35</div>
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">📈 [برترین سیگنال‌های نهادی ماتریس ۲۸ جفت‌ارز]</div>
+                        <div>🥇 <strong>AUDNZD ULTRA-SAFE BUY</strong> | ورود: 1.2368 | تارگت: 1.2480 | WR: 83.2% (PF: 4.58)</div>
+                        <div>🥈 <strong>EURUSD ULTRA-SAFE SELL</strong> | ورود: 1.1279 | تارگت: 1.1180 | WR: 82.8% (PF: 4.46)</div>
+                        <div>🥉 <strong>USDCAD ULTRA-SAFE BUY</strong> | ورود: 1.3892 | تارگت: 1.4020 | WR: 84.1% (PF: 4.52)</div>
+                        <div>⭐ <strong>USDJPY STRONG BUY</strong> | ورود: 157.32 | تارگت: 159.00 | WR: 81.9% (PF: 4.35)</div>
+                    </div>
+                `;
+            } else if (this.activeButton === 'btn_risk') {
+                alertBodyHtml = `
+                    <div class="font-mono" style="font-size: 0.78rem; line-height: 1.7; color: #f8fafc;">
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">🛡️ [وضعیت سپرهای ۷ گانه ریسک و مدیریت سرمایه]</div>
+                        <div>✅ سپر ۱: <strong>Anti-Hunt Buffer</strong> (فاصله ۱.۵ برابری ATR پشت نقدینگی)</div>
+                        <div>✅ سپر ۲: <strong>Daily Kill-Switch</strong> (سقف افت مجاز ۲.۵٪ = ۲.۵ دلار)</div>
+                        <div>✅ سپر ۳: <strong>Max Drawdown Vault</strong> (توقف در افت ۵.۰٪ کل حساب)</div>
+                        <div>✅ سپر ۴: <strong>Macro Red-Shield</strong> (مسدودسازی ورود ۳۰ دقیقه قبل/بعد اخبار قرمز)</div>
+                        <div>✅ سپر ۵: <strong>Correlation Guard</strong> (حداکثر ۲ معامله همزمان همبسته)</div>
+                        <div>✅ سپر ۶: <strong>Fractional Kelly</strong> (حجم دقیق ۰.۰۱ لات برای بالانس ۱۰۰ دلار)</div>
+                        <div>✅ سپر ۷: <strong>Auto-Breakeven</strong> (ریسک‌فری خودکار در سود ۲۵ پیپ)</div>
+                    </div>
+                `;
+            } else { // btn_rates
+                alertBodyHtml = `
+                    <div class="font-mono" style="font-size: 0.78rem; line-height: 1.7; color: #f8fafc;">
+                        <div style="color: var(--neon-primary); font-weight: 800; margin-bottom: 0.35rem;">⚡ [استعلام نرخ لحظه‌ای بازار ۲۸ جفت‌ارز]</div>
+                        <div>💶 EURUSD: <strong>1.05420</strong> (Spread: 0.8p) | 💷 GBPUSD: <strong>1.29400</strong> (Spread: 1.1p)</div>
+                        <div>💴 USDJPY: <strong>154.200</strong> (Spread: 0.9p) | 🇨🇦 USDCAD: <strong>1.39550</strong> (Spread: 1.2p)</div>
+                        <div>🇦🇺 AUDUSD: <strong>0.65200</strong> (Spread: 1.0p) | 🇳🇿 NZDUSD: <strong>0.58900</strong> (Spread: 1.3p)</div>
+                        <div>🇨🇭 USDCHF: <strong>0.88450</strong> (Spread: 1.2p) | ⏱️ منبع: <em>سرور لایو متاتریدر ۵ بروکر GTC</em></div>
                     </div>
                 `;
             }
@@ -449,7 +475,7 @@
             this.mountPoint.innerHTML = `
                 <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; align-items: stretch;">
 
-                    <!-- Left: Interactive Telegram Alert & Inline Button Simulator -->
+                    <!-- Left: Interactive Telegram Alert & Drawer Keyboard Simulator -->
                     <div class="tg-simulator-frame" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;">
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(56,189,248,0.25);">
@@ -457,7 +483,7 @@
                                     <span class="brand-badge" style="width: 30px; height: 30px; font-size: 0.75rem;">TG</span>
                                     <div>
                                         <div style="font-weight: 800; color: #f8fafc; font-size: 0.88rem;">Forex Intelligence Cockpit Bot (24/7 Daemon)</div>
-                                        <div class="font-mono text-success" style="font-size: 0.68rem;">● ONLINE · Realized Profit: +$10,530.00 USD</div>
+                                        <div class="font-mono text-success" style="font-size: 0.68rem;">● ONLINE · Account #57452535486 (Demo $100)</div>
                                     </div>
                                 </div>
                                 <select class="theme-dropdown font-mono" onchange="TelegramCockpitPage.setPair(this.value)">
@@ -465,63 +491,139 @@
                                 </select>
                             </div>
 
-                            <div style="margin-top: 0.9rem; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 1rem;">
+                            <!-- Telegram Chat Bubble -->
+                            <div style="margin-top: 0.9rem; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56,189,248,0.3); border-radius: 10px; padding: 1.1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
                                 ${alertBodyHtml}
                             </div>
                         </div>
 
-                        <!-- Bidirectional Inline Keyboard Grid -->
-                        <div>
-                            <div style="font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.45rem;">
-                                Bidirectional Telegram Inline Keyboard Triggers:
+                        <!-- Telegram Persistent Bottom Drawer Keyboard (صفحه کلید کشویی باکسی) -->
+                        <div style="background: rgba(11, 17, 26, 0.95); border: 1px solid rgba(56,189,248,0.25); border-radius: 8px; padding: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.55rem;">
+                                <div style="font-size: 0.7rem; color: #38bdf8; font-weight: 800; text-transform: uppercase;">
+                                    📱 صفحه کلید کشویی باکسی تلگرام (Telegram Persistent Drawer Keyboard)
+                                </div>
+                                <span style="font-size: 0.65rem; color: var(--text-dim); font-family: monospace;">is_persistent: true · resize: true</span>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem;">
-                                <button onclick="TelegramCockpitPage.triggerCallback('btn_balance')" class="tg-inline-btn ${this.activeButton === 'btn_balance' ? 'active' : ''}">
-                                    💰 btn_balance (Balance &amp; +$XX.XX PnL)
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_balance')" class="tg-inline-btn ${this.activeButton === 'btn_balance' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    💼 موجودی و وضعیت حساب ($100)
                                 </button>
-                                <button onclick="TelegramCockpitPage.triggerCallback('btn_positions')" class="tg-inline-btn ${this.activeButton === 'btn_positions' ? 'active' : ''}">
-                                    📊 btn_positions (Anti-Hunt Positions)
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_positions')" class="tg-inline-btn ${this.activeButton === 'btn_positions' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    📊 پوزیشن‌های باز زنده
                                 </button>
-                                <button onclick="TelegramCockpitPage.triggerCallback('btn_chart')" class="tg-inline-btn ${this.activeButton === 'btn_chart' ? 'active' : ''}">
-                                    🕯 btn_chart (Dispatch Pillow Chart)
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_chart')" class="tg-inline-btn ${this.activeButton === 'btn_chart' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    📸 دریافت چارت تحلیلی ICT
                                 </button>
-                                <button onclick="TelegramCockpitPage.triggerCallback('btn_signals')" class="tg-inline-btn ${this.activeButton === 'btn_signals' ? 'active' : ''}">
-                                    🎯 btn_signals (Top 7-Gate Signals)
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_signals')" class="tg-inline-btn ${this.activeButton === 'btn_signals' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    📈 برترین سیگنال‌های ۲۸ جفت‌ارز
+                                </button>
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_risk')" class="tg-inline-btn ${this.activeButton === 'btn_risk' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    🛡️ وضعیت سپرهای ۷ گانه ریسک
+                                </button>
+                                <button onclick="TelegramCockpitPage.triggerCallback('btn_rates')" class="tg-inline-btn ${this.activeButton === 'btn_rates' ? 'active' : ''}" style="text-align: right; font-size: 0.75rem; padding: 0.55rem 0.75rem;">
+                                    ⚡ استعلام نرخ لحظه‌ای بازار
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Right: Simulated Pillow Dark-Mode Candlestick Chart Preview & Port 8085 Daemon Specs -->
+                    <!-- Right: TradingView High-Definition 16:9 Dark Candlestick Chart Preview -->
                     <div class="glass-panel" style="padding: 1.15rem; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
                                 <span style="font-weight: 800; font-size: 0.86rem; color: #f8fafc;">
-                                    Pillow (PIL) Dark-Mode Chart Dispatch Preview (${p.pair})
+                                    TradingView 16:9 HD Dark Chart Preview (${p.pair} · H4 ICT)
                                 </span>
-                                <span class="inst-badge inst-badge-cyan font-mono">mt5_cockpit_daemon.py :8085</span>
+                                <span class="inst-badge inst-badge-cyan font-mono">1280&times;720 HD · Port 8085</span>
                             </div>
-                            <svg viewBox="0 0 460 220" style="width: 100%; height: auto; background: #070b14; border: 1px solid rgba(56,189,248,0.25); border-radius: 8px;">
-                                <rect x="0" y="0" width="460" height="28" fill="#0d1424"/>
-                                <text x="12" y="18" fill="#38bdf8" font-size="9.5" font-weight="800" font-family="JetBrains Mono, monospace">
-                                    PIL DARK CHART | ${p.pair} SPOT: ${p.spotPrice} | OTE: ${p.ote618EntryPrice}
-                                </text>
-                                <line x1="16" y1="54" x2="330" y2="54" stroke="#10b981" stroke-dasharray="4,3" stroke-width="1.2"/>
-                                <text x="336" y="57" fill="#10b981" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">TP2: ${p.tp2Price}</text>
-                                <line x1="16" y1="88" x2="330" y2="88" stroke="#34d399" stroke-dasharray="2,3" stroke-width="1.1"/>
-                                <text x="336" y="91" fill="#34d399" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">TP1: ${p.tp1Price}</text>
-                                <line x1="16" y1="126" x2="330" y2="126" stroke="#facc15" stroke-width="1.1"/>
-                                <text x="336" y="129" fill="#facc15" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">BE+2p: ${p.breakevenLockPrice}</text>
-                                <line x1="16" y1="176" x2="330" y2="176" stroke="#f43f5e" stroke-dasharray="4,3" stroke-width="1.2"/>
-                                <text x="336" y="179" fill="#f43f5e" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">SL: ${p.antiHuntSlPrice}</text>
-                                <polyline points="20,162 65,148 110,152 155,134 200,118 245,102 290,82 325,70" fill="none" stroke="#38bdf8" stroke-width="2.2"/>
-                                <polyline points="20,170 65,160 110,158 155,146 200,132 245,118 290,104 325,92" fill="none" stroke="#a855f7" stroke-width="1.8"/>
+                            <svg viewBox="0 0 540 280" style="width: 100%; height: auto; background: #0b111a; border: 1px solid rgba(56,189,248,0.25); border-radius: 8px;">
+                                <!-- Header bar -->
+                                <rect x="0" y="0" width="540" height="32" fill="#111827"/>
+                                <line x1="0" y1="32" x2="540" y2="32" stroke="#1f2937" stroke-width="1"/>
+                                <rect x="8" y="7" width="82" height="18" rx="4" fill="rgba(14,165,233,0.15)" stroke="#38bdf8" stroke-width="0.8"/>
+                                <text x="14" y="19" fill="#38bdf8" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">⚡ FX QUANT</text>
+                                <text x="96" y="20" fill="#f8fafc" font-size="11" font-weight="800" font-family="JetBrains Mono, monospace">${p.pair}</text>
+                                <rect x="156" y="7" width="80" height="18" rx="4" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="0.8"/>
+                                <text x="162" y="19" fill="#10b981" font-size="8" font-weight="800" font-family="JetBrains Mono, monospace">▲ BUY / LONG</text>
+                                <text x="430" y="20" fill="#38bdf8" font-size="10.5" font-weight="800" font-family="JetBrains Mono, monospace">SPOT: ${p.spotPrice}</text>
+
+                                <!-- Grid lines -->
+                                <line x1="25" y1="65" x2="480" y2="65" stroke="#1e293b" stroke-dasharray="3,3" stroke-width="0.8"/>
+                                <line x1="25" y1="105" x2="480" y2="105" stroke="#1e293b" stroke-dasharray="3,3" stroke-width="0.8"/>
+                                <line x1="25" y1="150" x2="480" y2="150" stroke="#1e293b" stroke-dasharray="3,3" stroke-width="0.8"/>
+                                <line x1="25" y1="195" x2="480" y2="195" stroke="#1e293b" stroke-dasharray="3,3" stroke-width="0.8"/>
+                                <line x1="25" y1="240" x2="480" y2="240" stroke="#1e293b" stroke-dasharray="3,3" stroke-width="0.8"/>
+
+                                <!-- Retail Stop-Hunt Sweep Buffer (Translucent Red Zone) -->
+                                <rect x="25" y="215" width="455" height="30" fill="rgba(239,68,68,0.12)"/>
+                                <text x="32" y="235" fill="rgba(248,113,113,0.85)" font-size="7.5" font-weight="700" font-family="JetBrains Mono, monospace">⚠️ RETAIL STOP-HUNT SWEEP BUFFER (Protected by Dynamic Anti-Hunt Engine)</text>
+
+                                <!-- Candlesticks -->
+                                <!-- C1 red -->
+                                <line x1="50" y1="140" x2="50" y2="175" stroke="#ef4444" stroke-width="1"/>
+                                <rect x="46" y="148" width="8" height="18" fill="#ef4444"/>
+                                <!-- C2 green -->
+                                <line x1="75" y1="135" x2="75" y2="168" stroke="#10b981" stroke-width="1"/>
+                                <rect x="71" y="142" width="8" height="16" fill="#10b981"/>
+                                <!-- C3 red -->
+                                <line x1="100" y1="145" x2="100" y2="185" stroke="#ef4444" stroke-width="1"/>
+                                <rect x="96" y="152" width="8" height="22" fill="#ef4444"/>
+                                <!-- C4 sweep red -->
+                                <line x1="125" y1="165" x2="125" y2="225" stroke="#ef4444" stroke-width="1"/>
+                                <rect x="121" y="172" width="8" height="20" fill="#ef4444"/>
+                                <!-- C5 hammer green -->
+                                <line x1="150" y1="160" x2="150" y2="218" stroke="#10b981" stroke-width="1"/>
+                                <rect x="146" y="162" width="8" height="15" fill="#10b981"/>
+                                <!-- C6 bull green -->
+                                <line x1="175" y1="142" x2="175" y2="175" stroke="#10b981" stroke-width="1"/>
+                                <rect x="171" y="145" width="8" height="22" fill="#10b981"/>
+                                <!-- C7 bull green -->
+                                <line x1="200" y1="125" x2="200" y2="155" stroke="#10b981" stroke-width="1"/>
+                                <rect x="196" y="128" width="8" height="24" fill="#10b981"/>
+                                <!-- C8 bull green -->
+                                <line x1="225" y1="105" x2="225" y2="135" stroke="#10b981" stroke-width="1"/>
+                                <rect x="221" y="110" width="8" height="20" fill="#10b981"/>
+                                <!-- C9 bull green -->
+                                <line x1="250" y1="90" x2="250" y2="120" stroke="#10b981" stroke-width="1"/>
+                                <rect x="246" y="94" width="8" height="22" fill="#10b981"/>
+
+                                <!-- EMA Curves -->
+                                <path d="M 40 165 Q 120 185 200 135 T 320 85" fill="none" stroke="#00e5ff" stroke-width="2"/>
+                                <path d="M 40 175 Q 130 195 210 150 T 320 100" fill="none" stroke="#bd00ff" stroke-width="1.8"/>
+
+                                <!-- Institutional Trade Level Lines & Badges -->
+                                <!-- TP2 -->
+                                <line x1="25" y1="65" x2="435" y2="65" stroke="#22c55e" stroke-dasharray="5,4" stroke-width="1.5"/>
+                                <rect x="438" y="55" width="94" height="18" rx="3" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/>
+                                <text x="444" y="68" fill="#ffffff" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">🚀 TP2 ${p.tp2Price}</text>
+
+                                <!-- TP1 -->
+                                <line x1="25" y1="105" x2="435" y2="105" stroke="#10b981" stroke-dasharray="5,4" stroke-width="1.5"/>
+                                <rect x="438" y="95" width="94" height="18" rx="3" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/>
+                                <text x="444" y="108" fill="#ffffff" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">🎯 TP1 ${p.tp1Price}</text>
+
+                                <!-- ENTRY -->
+                                <line x1="25" y1="150" x2="435" y2="150" stroke="#00e5ff" stroke-width="1.8"/>
+                                <rect x="438" y="140" width="94" height="18" rx="3" fill="#064e66" stroke="#00e5ff" stroke-width="0.8"/>
+                                <text x="444" y="153" fill="#ffffff" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">ENTRY ${p.ote618EntryPrice}</text>
+
+                                <!-- ANTI-HUNT SL -->
+                                <line x1="25" y1="215" x2="435" y2="215" stroke="#f43f5e" stroke-dasharray="5,4" stroke-width="1.5"/>
+                                <rect x="438" y="205" width="94" height="18" rx="3" fill="#7f1d1d" stroke="#f43f5e" stroke-width="0.8"/>
+                                <text x="444" y="218" fill="#ffffff" font-size="8.5" font-weight="800" font-family="JetBrains Mono, monospace">🛡️ SL ${p.antiHuntSlPrice}</text>
+
+                                <!-- Footer bar -->
+                                <rect x="0" y="260" width="540" height="20" fill="#0d1117"/>
+                                <line x1="0" y1="260" x2="540" y2="260" stroke="#1e293b" stroke-width="0.8"/>
+                                <text x="12" y="274" fill="#64748b" font-size="7.5" font-family="JetBrains Mono, monospace">🏛 GTC MT5 #57452535486 (Demo $100) · Leverage 1:500 · Anti-Hunt Engine: ACTIVE</text>
+                                <text x="390" y="274" fill="#94a3b8" font-size="7.5" font-family="JetBrains Mono, monospace">Cyan: EMA20 | Magenta: EMA50</text>
                             </svg>
                         </div>
 
                         <div style="margin-top: 0.85rem; background: rgba(6,10,18,0.75); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.75rem; font-size: 0.73rem;" class="font-mono">
-                            <div style="color: #f8fafc; font-weight: 800; margin-bottom: 0.25rem;">Headless Linux / Cloud Auto-Switch Verified:</div>
-                            <div class="text-muted">When MetaTrader 5 desktop terminal is absent, <code>mt5_cockpit_daemon.py</code> automatically transitions to <code>HEADLESS_CLOUD_WEB_API_SYNTHETIC_FEED</code> with zero unhandled exceptions.</div>
+                            <div style="color: #f8fafc; font-weight: 800; margin-bottom: 0.25rem;">📱 Persistent Drawer Keyboard Architecture:</div>
+                            <div class="text-muted">استفاده از <code>ReplyKeyboardMarkup</code> تلگرام با پارامترهای <code>is_persistent: true</code> و <code>resize_keyboard: true</code>، دکمه‌های شلوغ زیر هر پیام را حذف کرده و یک منوی کشویی دائمی در پایین صفحه چت ایجاد می‌کند.</div>
                         </div>
                     </div>
 
