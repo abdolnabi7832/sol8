@@ -628,6 +628,9 @@ class MT5CockpitEngine:
 
     def get_account_summary(self) -> dict:
         if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+            c_bal = float(getattr(self, "cloud_balance", 100.0))
+            active_list = self.get_live_positions()
+            floating_pnl = sum(float(p.get("profit", 0.0)) for p in active_list)
             return {
                 "connected": True,
                 "login": str(self.creds.get("login", 57452535486)),
@@ -635,15 +638,15 @@ class MT5CockpitEngine:
                 "company": "GTC Global Trade Capital Co. Limited",
                 "server": str(self.creds.get("server", "GTCGlobalTrade-Demo")),
                 "currency": "USD",
-                "balance": 100.0,
-                "equity": 100.0,
+                "balance": round(c_bal, 2),
+                "equity": round(c_bal + floating_pnl, 2),
                 "margin": 0.0,
-                "margin_free": 100.0,
+                "margin_free": round(c_bal + floating_pnl, 2),
                 "margin_level": 0.0,
-                "floating_pnl": 0.0,
-                "floating_pnl_pct": 0.0,
+                "floating_pnl": round(floating_pnl, 2),
+                "floating_pnl_pct": round((floating_pnl / c_bal * 100), 2) if c_bal > 0 else 0.0,
                 "leverage": 500,
-                "open_positions_count": len(getattr(self, "cloud_positions", [])),
+                "open_positions_count": len(active_list),
                 "autopilot_enabled": self.autopilot_enabled,
                 "magic_number": self.magic_number,
                 "config": self.get_sanitized_config(),
