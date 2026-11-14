@@ -582,7 +582,7 @@
             if (window.AppRouter) window.AppRouter.showToast(`در حال ارسال سفارش ${direction} ${pair} به MT5...`, 'info');
 
             try {
-                const resp = await fetch('http://127.0.0.1:8085/api/mt5/order', {
+                const resp = await fetch('/api/v1/market/mt5/order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
