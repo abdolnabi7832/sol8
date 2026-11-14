@@ -17,6 +17,24 @@ except ImportError:
     mt5 = None
     HAS_MT5_LIB = False
 
+try:
+    import rpyc
+    HAS_RPYC = True
+except ImportError:
+    rpyc = None
+    HAS_RPYC = False
+
+
+def get_rpyc_mt5_instance(host="127.0.0.1", port=18812, timeout=20):
+    if not rpyc:
+        return None, None
+    try:
+        conn = rpyc.classic.connect(host, port)
+        conn._config["sync_request_timeout"] = timeout
+        return conn, conn.modules.MetaTrader5
+    except Exception:
+        return None, None
+
 IS_HEADLESS_MODE = (
     os.environ.get("HEADLESS_MODE", "0") == "1"
     or os.environ.get("RAILWAY_ENVIRONMENT") is not None
@@ -476,26 +494,44 @@ class MT5CockpitEngine:
                 password = str(self.creds.get("password", "")).strip()
                 server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
 
-                # If on Linux or Wine environment: Attempt connection to local mt5linux server (Port 18812)
-                if sys.platform != "win32":
-                    try:
-                        from mt5linux import MetaTrader5 as mt5_linux
+                # If on Linux or Wine environment or RPyC bridge available: Connect to local mt5server via RPyC (Port 18812)
+                try:
+                    conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812)
+                    if test_mt5 is not None:
                         global mt5, HAS_MT5_LIB
-                        test_mt5 = mt5_linux(host="127.0.0.1", port=18812)
-                        if test_mt5.initialize():
+                        init_ok = False
+                        try:
+                            init_ok = bool(test_mt5.initialize())
+                        except Exception:
+                            pass
+                        if not init_ok:
+                            try:
+                                init_ok = bool(test_mt5.initialize(path=r"Z:\app\mt5\terminal64.exe", portable=True))
+                            except Exception:
+                                pass
+                        if init_ok:
                             if login and password:
-                                test_mt5.login(login=login, password=password, server=server)
-                            acc = test_mt5.account_info()
-                            if acc and acc.login:
+                                try:
+                                    test_mt5.login(login=login, password=password, server=server)
+                                except Exception:
+                                    pass
+                            acc = None
+                            try:
+                                acc = test_mt5.account_info()
+                                if rpyc and hasattr(rpyc.classic, 'obtain'):
+                                    acc = rpyc.classic.obtain(acc)
+                            except Exception:
+                                pass
+                            if acc and getattr(acc, 'login', None):
                                 mt5 = test_mt5
                                 HAS_MT5_LIB = True
                                 self.is_connected = True
                                 self.is_cloud_mode = False
                                 self.last_connect_error = None
-                                self.log_event(f"🚀 [Wine MT5 Live] Connected to GTC Broker: #{acc.login} ({acc.company}) | Balance: ${acc.balance:.2f} | Leverage: 1:{acc.leverage}")
+                                self.log_event(f"🚀 [Wine MT5 Live] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
                                 return True
-                    except Exception as e:
-                        self.log_event(f"⏳ Wine MT5 Bridge: waiting for terminal64 & mt5server ({e})")
+                except Exception as e:
+                    self.log_event(f"⏳ Wine MT5 Bridge: waiting for terminal64 & mt5server ({e})")
 
                 # Try silent attach to already running native terminal on Windows without launching GUI window
                 try:
@@ -543,29 +579,48 @@ class MT5CockpitEngine:
         if not self.is_connected:
             return self.connect()
         if getattr(self, "is_cloud_mode", False):
-            # If on Linux in cloud mode, attempt connecting to Wine mt5linux every 10 seconds!
+            # If in cloud standby mode, attempt auto-connecting to Wine mt5server RPyC bridge every 10 seconds!
             now = time.time()
-            if sys.platform != "win32" and (now - getattr(self, "_last_cloud_retry", 0) > 10):
+            if (now - getattr(self, "_last_cloud_retry", 0) > 10):
                 self._last_cloud_retry = now
                 try:
-                    from mt5linux import MetaTrader5 as mt5_linux
-                    global mt5, HAS_MT5_LIB
-                    test_mt5 = mt5_linux(host="127.0.0.1", port=18812)
-                    if test_mt5.initialize():
-                        login = int(self.creds.get("login", 0)) if str(self.creds.get("login", "")).isdigit() else 57452535486
-                        password = str(self.creds.get("password", "")).strip()
-                        server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
-                        if login and password:
-                            test_mt5.login(login=login, password=password, server=server)
-                        acc = test_mt5.account_info()
-                        if acc and acc.login:
-                            mt5 = test_mt5
-                            HAS_MT5_LIB = True
-                            self.is_connected = True
-                            self.is_cloud_mode = False
-                            self.last_connect_error = None
-                            self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({acc.company}) | Balance: ${acc.balance:.2f} | Leverage: 1:{acc.leverage}")
-                            return True
+                    conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812)
+                    if test_mt5 is not None:
+                        global mt5, HAS_MT5_LIB
+                        init_ok = False
+                        try:
+                            init_ok = bool(test_mt5.initialize())
+                        except Exception:
+                            pass
+                        if not init_ok:
+                            try:
+                                init_ok = bool(test_mt5.initialize(path=r"Z:\app\mt5\terminal64.exe", portable=True))
+                            except Exception:
+                                pass
+                        if init_ok:
+                            login = int(self.creds.get("login", 0)) if str(self.creds.get("login", "")).isdigit() else 57452535486
+                            password = str(self.creds.get("password", "")).strip()
+                            server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
+                            if login and password:
+                                try:
+                                    test_mt5.login(login=login, password=password, server=server)
+                                except Exception:
+                                    pass
+                            acc = None
+                            try:
+                                acc = test_mt5.account_info()
+                                if rpyc and hasattr(rpyc.classic, 'obtain'):
+                                    acc = rpyc.classic.obtain(acc)
+                            except Exception:
+                                pass
+                            if acc and getattr(acc, 'login', None):
+                                mt5 = test_mt5
+                                HAS_MT5_LIB = True
+                                self.is_connected = True
+                                self.is_cloud_mode = False
+                                self.last_connect_error = None
+                                self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
+                                return True
                 except Exception:
                     pass
             return True
@@ -1224,34 +1279,51 @@ class MT5CockpitEngine:
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 and s_info:
             try:
                 order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
-                filling = mt5.ORDER_FILLING_IOC if (s_info.filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (s_info.filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
+                filling_mode = getattr(s_info, 'filling_mode', 0)
+                filling = mt5.ORDER_FILLING_IOC if (filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
                 request = {
-                    "action": mt5.TRADE_ACTION_DEAL,
-                    "symbol": symbol,
+                    "action": int(mt5.TRADE_ACTION_DEAL),
+                    "symbol": str(symbol),
                     "volume": float(volume),
-                    "type": order_type,
-                    "price": price,
-                    "sl": sl,
-                    "tp": tp,
+                    "type": int(order_type),
+                    "price": float(price),
+                    "sl": float(sl),
+                    "tp": float(tp),
                     "deviation": 20,
-                    "magic": self.magic_number,
+                    "magic": int(self.magic_number),
                     "comment": "QuantFX-AntiHunt v7.0",
-                    "type_time": mt5.ORDER_TIME_GTC,
-                    "type_filling": filling,
+                    "type_time": int(mt5.ORDER_TIME_GTC),
+                    "type_filling": int(filling),
                 }
                 result = mt5.order_send(request)
+                if rpyc and hasattr(rpyc.classic, 'obtain'):
+                    result = rpyc.classic.obtain(result)
             except Exception as e:
                 self.log_event(f"⚠️ Native MT5 send notice: {e}")
 
-        # If native execution succeeded
-        if result and result.retcode == mt5.TRADE_RETCODE_DONE:
-            ticket = result.order
-            exec_mode = "NATIVE_MT5"
-            self.log_event(f"🎯 Execution Success (Broker MT5): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic SL: {sl}")
+        # If native execution was attempted on MT5
+        if result is not None:
+            retcode = getattr(result, "retcode", 0)
+            if retcode == getattr(mt5, "TRADE_RETCODE_DONE", 10009):
+                ticket = getattr(result, "order", getattr(result, "deal", 0))
+                exec_mode = "LIVE_BROKER_MT5"
+                self.log_event(f"🎯 Execution Success (Broker MT5): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic SL: {sl}")
+            else:
+                comment = getattr(result, "comment", "Order rejected by broker")
+                self.log_event(f"❌ Real Broker Order Rejection: {comment} (Retcode: {retcode}) for {action} {volume} {symbol}")
+                err_text = f"Broker Rejected Order: {comment} (Code {retcode})"
+                if retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
+                    err_text = f"بازار فارکس در حال حاضر بسته است (Market is closed - Code {retcode}). معاملات در روزهای شنبه و یکشنبه روی جفت‌ارزهای فارکس بسته است و از بامداد دوشنبه بازگشایی می‌شود."
+                return {
+                    "success": False,
+                    "error": err_text,
+                    "retcode": retcode,
+                    "comment": str(comment)
+                }
         else:
-            # Execute via Cloud Hybrid Gateway Engine (Seamless for Railway / Headless / AutoTrading Disabled)
+            # Standby Cloud Gateway simulator (when MT5 terminal is still connecting or Wine offline)
             ticket = int(self.creds.get('login', 57452535486)) % 1000000000 + int(time.time() * 100) % 90000
-            exec_mode = "CLOUD_HYBRID"
+            exec_mode = "CLOUD_HYBRID_STANDBY"
             pos_obj = {
                 "ticket": ticket,
                 "symbol": symbol,
@@ -1265,11 +1337,11 @@ class MT5CockpitEngine:
                 "profit": 0.0,
                 "magic": self.magic_number,
                 "time": datetime.datetime.now().isoformat(),
-                "comment": "QuantFX-CloudEngine v7.0"
+                "comment": "QuantFX-CloudEngine (Standby Mode)"
             }
             self.tracked_positions[ticket] = pos_obj
             self.save_tracked_positions()
-            self.log_event(f"🎯 Execution Success (Cloud Gateway): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic Anti-Hunt SL: {sl}")
+            self.log_event(f"🎯 Execution Placed (Cloud Standby Simulator): {action} {volume} {symbol} @ {price} | Ticket #{ticket} | Dynamic Anti-Hunt SL: {sl}")
 
         # Generate chart photo & dispatch Telegram Photo + Message
         chart_path = os.path.join(LOGS_DIR, f"chart_{symbol}_{ticket}.png")

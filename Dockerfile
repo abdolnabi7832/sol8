@@ -38,14 +38,16 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sour
     ln -sf /usr/lib/wine/wine64 /usr/bin/wine64 && \
     ln -sf /usr/lib/wine/wine64 /usr/bin/wine && \
     ln -sf /usr/lib/wine/wineserver64 /usr/bin/wineserver && \
+    ln -sf /usr/lib/wine/wineserver64 /usr/lib/wine/wineserver && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Python requirements (including mt5linux & rpyc)
+# Install Python requirements (including rpyc)
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r /app/requirements.txt || true
 
-# Copy MT5 Portable Bundle, Data Logs, Daemon & Compiled JAR
+# Copy MT5 Portable Bundle, Bridge, Data Logs, Daemon & Compiled JAR
 COPY mt5_bundle.tar.xz /app/mt5_bundle.tar.xz
+COPY mt5server.exe /app/mt5server.exe
 COPY data/ /app/data/
 COPY mt5_cockpit_daemon.py /app/mt5_cockpit_daemon.py
 COPY start.sh /app/start.sh

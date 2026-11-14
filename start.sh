@@ -10,6 +10,7 @@ export WINEDEBUG=-all
 export WINEPREFIX=/root/.wine
 export WINEARCH=win64
 export WINEDLLOVERRIDES="mscoree,mshtml="
+export PATH="/usr/lib/wine:${PATH}"
 
 # 1. Start Xvfb Virtual Framebuffer
 echo "🖥️  Starting Xvfb Virtual Framebuffer on :99..."
@@ -17,15 +18,19 @@ Xvfb :99 -screen 0 1024x768x16 -ac &
 sleep 2
 
 # 2. Extract MT5 Portable Bundle if not already extracted
+mkdir -p /app/mt5
 if [ ! -f /app/mt5/terminal64.exe ]; then
     echo "📦 Extracting GTC MetaTrader 5 Portable Bundle..."
-    mkdir -p /app/mt5
     tar -xf /app/mt5_bundle.tar.xz -C /app/mt5 || true
     echo "✅ MT5 Terminal unpacked successfully."
 fi
 
+# Ensure mt5server.exe exists in /app/mt5
+if [ -f /app/mt5server.exe ] && [ ! -f /app/mt5/mt5server.exe ]; then
+    cp /app/mt5server.exe /app/mt5/mt5server.exe
+fi
+
 # Detect Wine executable
-export PATH="/usr/lib/wine:${PATH}"
 WINE_BIN=""
 for candidate in "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
     if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then
@@ -41,23 +46,25 @@ if [ -n "$WINE_BIN" ]; then
     if [ ! -d /root/.wine ]; then
         echo "🍷 Initializing Wine64 Prefix in headless mode..."
         $WINE_BIN wineboot --init || true
-        sleep 4
+        sleep 6
     fi
 
     echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
-    $WINE_BIN /app/mt5/terminal64.exe /portable /config:/app/mt5/start.ini &
-    sleep 7
+    cd /app/mt5
+    $WINE_BIN terminal64.exe /portable /login:57452535486 /password:1zQbW!Xc /server:GTCGlobalTrade-Demo &
+    sleep 8
 
-    # 4. Launch mt5server.exe RPyC Bridge
+    # 4. Launch mt5server.exe RPyC Bridge on Port 18812
     if [ -f /app/mt5/mt5server.exe ]; then
         echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-        $WINE_BIN /app/mt5/mt5server.exe -p 18812 &
-        sleep 4
+        $WINE_BIN mt5server.exe --host 0.0.0.0 -p 18812 &
+        sleep 3
     elif [ -f /app/mt5server.exe ]; then
         echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-        $WINE_BIN /app/mt5server.exe -p 18812 &
-        sleep 4
+        $WINE_BIN /app/mt5server.exe --host 0.0.0.0 -p 18812 &
+        sleep 3
     fi
+    cd /app
 else
     echo "ℹ️ Wine binary not detected directly in this layer. Standby Cloud Gateway mode active for #57452535486."
 fi

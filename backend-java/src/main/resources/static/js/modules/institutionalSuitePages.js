@@ -517,15 +517,21 @@
                     body: JSON.stringify({ symbol: pair, action: action, volume: Number(volume) || 0.01 })
                 });
                 const res = await resp.json();
-                if (res.success || res.status === 'SUCCESS' || res.ticket) {
+                if (res.success && res.mode === 'LIVE_BROKER_MT5') {
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
-                        window._fxSuite.showToastNotice(`Order executed on MT5! Ticket: #${res.ticket || res.order || 'Live'}`, 'success', 3500);
+                        window._fxSuite.showToastNotice(`✅ پوزیشن واقعی در بروکر GTC متاتریدر ۵ ثبت شد! تیکت: #${res.ticket}`, 'success', 5000);
+                    }
+                    await this.syncLiveMt5Data();
+                    setTimeout(() => this.syncLiveMt5Data(), 800);
+                } else if (res.success) {
+                    if (window._fxSuite && window._fxSuite.showToastNotice) {
+                        window._fxSuite.showToastNotice(`ℹ️ پوزیشن در شبیه‌ساز ابری ثبت شد (#${res.ticket}) — اتصال MT5 در حال آماده‌سازی است.`, 'info', 4500);
                     }
                     await this.syncLiveMt5Data();
                     setTimeout(() => this.syncLiveMt5Data(), 800);
                 } else {
                     if (window._fxSuite && window._fxSuite.showToastNotice) {
-                        window._fxSuite.showToastNotice(`Execution notice: ${res.error || res.message || 'Dispatched to Broker'}`, 'info', 3000);
+                        window._fxSuite.showToastNotice(`❌ خطا در ثبت سفارش بروکر: ${res.error || res.message || 'رد سفارش توسط سرور بروکر'}`, 'error', 5000);
                     }
                     await this.syncLiveMt5Data();
                 }

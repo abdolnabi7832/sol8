@@ -556,7 +556,7 @@
             this.render();
         },
 
-        saveCustomKey() {
+        async saveCustomKey() {
             const keyInput = document.getElementById('newGeminiKeyInput');
             const labelInput = document.getElementById('newGeminiKeyLabel');
             const modelSelect = document.getElementById('newGeminiKeyModel');
@@ -570,6 +570,16 @@
             const keys = this.getCustomKeys();
             const label = (labelInput && labelInput.value.trim()) ? labelInput.value.trim().toUpperCase() : ('GEMINI_CUSTOM_' + (keys.length + 1));
             const model = modelSelect ? modelSelect.value : 'gemini-2.5-flash';
+
+            // Sync with backend Gemini Key Pool
+            try {
+                await fetch('/api/v1/gemini/keys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ apiKey: rawKey, label: label, model: model })
+                });
+            } catch(e) {}
+
             keys.push({
                 id: label,
                 key: rawKey,
@@ -580,14 +590,22 @@
                 addedAt: new Date().toISOString()
             });
             localStorage.setItem('fx_gemini_custom_keys', JSON.stringify(keys));
+            if (keyInput) keyInput.value = '';
+            if (labelInput) labelInput.value = '';
             if (window._fxSuite && window._fxSuite.showToastNotice) {
-                window._fxSuite.showToastNotice(`Gemini Key [${label}] added to rotation pool!`, 'success', 3500);
+                window._fxSuite.showToastNotice(`Gemini Key [${label}] saved & activated in AI Quant Pool! ✅`, 'success', 3500);
             }
             this.render();
         },
 
-        deleteCustomKey(idx) {
+        async deleteCustomKey(idx) {
             const keys = this.getCustomKeys();
+            const removed = keys[idx];
+            if (removed && removed.id) {
+                try {
+                    await fetch('/api/v1/gemini/keys/' + encodeURIComponent(removed.id), { method: 'DELETE' });
+                } catch(e) {}
+            }
             keys.splice(idx, 1);
             localStorage.setItem('fx_gemini_custom_keys', JSON.stringify(keys));
             if (window._fxSuite && window._fxSuite.showToastNotice) {
