@@ -138,12 +138,24 @@ public class MarketDataController {
     }
 
     @PostMapping("/mt5/order")
-    public ResponseEntity<Map<String, Object>> executeMt5Order(@RequestBody Map<String, Object> req) {
-        String sym = (String) req.getOrDefault("symbol", "EURUSD");
-        String act = (String) req.getOrDefault("action", "BUY");
-        Number vol = (Number) req.getOrDefault("volume", 0.01);
-        Number sl = (Number) req.get("sl_pips");
-        Number tp = (Number) req.get("tp_pips");
+    public ResponseEntity<?> executeMt5Order(@RequestBody(required = false) Map<String, Object> req,
+                                             @RequestParam(required = false) String symbol,
+                                             @RequestParam(required = false) String action,
+                                             @RequestParam(required = false) Double volume,
+                                             @RequestParam(required = false) Double sl_pips,
+                                             @RequestParam(required = false) Double tp_pips) {
+        Map<String, Object> body = (req != null) ? new java.util.HashMap<>(req) : new java.util.HashMap<>();
+        if (symbol != null && !symbol.isBlank()) body.put("symbol", symbol);
+        if (action != null && !action.isBlank()) body.put("action", action);
+        if (volume != null) body.put("volume", volume);
+        if (sl_pips != null) body.put("sl_pips", sl_pips);
+        if (tp_pips != null) body.put("tp_pips", tp_pips);
+
+        String sym = (String) body.getOrDefault("symbol", "EURUSD");
+        String act = (String) body.getOrDefault("action", "BUY");
+        Number vol = (Number) body.getOrDefault("volume", 0.01);
+        Number sl = (Number) body.get("sl_pips");
+        Number tp = (Number) body.get("tp_pips");
 
         try {
             String url = String.format("http://127.0.0.1:8085/api/mt5/order?symbol=%s&action=%s&volume=%.2f",
@@ -156,7 +168,8 @@ public class MarketDataController {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofSeconds(6))
-                    .GET()
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() == 200) {
@@ -214,41 +227,6 @@ public class MarketDataController {
             }
         } catch (Exception ignored) {}
         return ResponseEntity.ok(List.of());
-    }
-
-    @PostMapping("/mt5/order")
-    public ResponseEntity<?> placeMt5Order(@RequestBody(required = false) Map<String, Object> body,
-                                           @RequestParam(required = false) String symbol,
-                                           @RequestParam(required = false) String action,
-                                           @RequestParam(required = false) Double volume,
-                                           @RequestParam(required = false) Double sl_pips,
-                                           @RequestParam(required = false) Double tp_pips) {
-        try {
-            Map<String, Object> payload = new java.util.HashMap<>();
-            if (body != null) {
-                payload.putAll(body);
-            }
-            if (symbol != null) payload.put("symbol", symbol);
-            if (action != null) payload.put("action", action);
-            if (volume != null) payload.put("volume", volume);
-            if (sl_pips != null) payload.put("sl_pips", sl_pips);
-            if (tp_pips != null) payload.put("tp_pips", tp_pips);
-
-            String jsonPayload = objectMapper.writeValueAsString(payload);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://127.0.0.1:8085/api/mt5/order"))
-                    .timeout(Duration.ofSeconds(6))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                    .build();
-            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return ResponseEntity.status(resp.statusCode())
-                    .header("Content-Type", "application/json")
-                    .body(resp.body());
-        } catch (Exception e) {
-            log.error("[MT5 Order Proxy Error] {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of("success", false, "error", e.getMessage()));
-        }
     }
 
     @PostMapping("/mt5/close")

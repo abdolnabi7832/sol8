@@ -25,23 +25,34 @@ if [ ! -f /app/mt5/terminal64.exe ]; then
 fi
 
 # Detect Wine executable
-WINE_BIN=$(command -v wine64 || command -v wine)
+WINE_BIN=""
+for candidate in "wine64" "wine" "/usr/lib/wine/wine64" "/usr/bin/wine64" "/usr/bin/wine"; do
+    if command -v "$candidate" >/dev/null 2>&1 || [ -x "$candidate" ]; then
+        WINE_BIN="$candidate"
+        break
+    fi
+done
+
 echo "🍷 Using Wine binary: $WINE_BIN"
 
-# 3. Launch MetaTrader 5 Terminal64 in Portable Mode with GTC Demo Auto-Login
-echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
-$WINE_BIN /app/mt5/terminal64.exe /portable /config:/app/mt5/start.ini &
-sleep 5
+# 3. Launch MetaTrader 5 Terminal64 inside Wine64 if Wine is available
+if [ -n "$WINE_BIN" ]; then
+    echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
+    $WINE_BIN /app/mt5/terminal64.exe /portable /config:/app/mt5/start.ini &
+    sleep 5
 
-# 4. Launch mt5server.exe RPyC Bridge
-if [ -f /app/mt5/mt5server.exe ]; then
-    echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-    $WINE_BIN /app/mt5/mt5server.exe -p 18812 &
-    sleep 3
-elif [ -f /app/mt5server.exe ]; then
-    echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-    $WINE_BIN /app/mt5server.exe -p 18812 &
-    sleep 3
+    # 4. Launch mt5server.exe RPyC Bridge
+    if [ -f /app/mt5/mt5server.exe ]; then
+        echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
+        $WINE_BIN /app/mt5/mt5server.exe -p 18812 &
+        sleep 3
+    elif [ -f /app/mt5server.exe ]; then
+        echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
+        $WINE_BIN /app/mt5server.exe -p 18812 &
+        sleep 3
+    fi
+else
+    echo "ℹ️ Wine binary not detected directly in this layer. Standby Cloud Gateway mode active for #57452535486."
 fi
 
 # 5. Launch Python MT5 Cockpit Gateway Daemon
