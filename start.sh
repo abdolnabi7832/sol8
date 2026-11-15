@@ -44,6 +44,20 @@ if [ -n "$WINE_BIN" ]; then
         sleep 6
     fi
 
+    # Install native Visual C++ and Universal CRT DLLs for modern MSVC/MT5 compatibility
+    if [ -d /app/mt5_runtime_dlls ]; then
+        echo "📦 Installing native Visual C++ UCRT DLLs into MT5 and Wine system32..."
+        cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
+        mkdir -p /root/.wine/drive_c/windows/system32
+        cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true
+    fi
+
+    # Configure Wine overrides to prefer native UCRT DLLs (resolves fetestexcept error)
+    export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
+    export WINEDEBUG=-all
+    $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
+    $WINE_BIN reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
+
     echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
     cd /app/mt5
     $WINE_BIN terminal64.exe /portable /login:57452535486 /password:1zQbW!Xc /server:GTCGlobalTrade-Demo &

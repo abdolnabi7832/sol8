@@ -47,8 +47,9 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sour
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r /app/requirements.txt || true
 
-# Copy MT5 Portable Bundle, Data Logs, Daemon & Compiled JAR
+# Copy MT5 Portable Bundle, Runtime DLLs, Data Logs, Daemon & Compiled JAR
 COPY mt5_bundle.tar.xz /app/mt5_bundle.tar.xz
+COPY mt5_runtime_dlls/ /app/mt5_runtime_dlls/
 COPY data/ /app/data/
 COPY mt5_cockpit_daemon.py /app/mt5_cockpit_daemon.py
 COPY start.sh /app/start.sh

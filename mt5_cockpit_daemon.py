@@ -86,25 +86,8 @@ CHART_SNAPSHOT_FILE = os.path.join(LOGS_DIR, "live_chart_snapshot.png")
 DEFAULT_BOT_TOKEN = "9255473348:AAFiBI_x37LLxw-QWP8Abpsact2I6iuAoBU"
 DEFAULT_CHAT_ID = "5792130899"
 
-TELEGRAM_DRAWER_KEYBOARD = {
-    "keyboard": [
-        [
-            {"text": "💼 موجودی و وضعیت حساب ($100)"},
-            {"text": "📊 پوزیشن‌های باز زنده"}
-        ],
-        [
-            {"text": "📸 دریافت چارت تحلیلی ICT"},
-            {"text": "📈 برترین سیگنال‌های ۲۸ جفت‌ارز"}
-        ],
-        [
-            {"text": "🛡️ وضعیت سپرهای ۷ گانه ریسک"},
-            {"text": "⚡ استعلام نرخ لحظه‌ای بازار"}
-        ]
-    ],
-    "resize_keyboard": True,
-    "is_persistent": True
-}
-TELEGRAM_INLINE_KEYBOARD = TELEGRAM_DRAWER_KEYBOARD
+TELEGRAM_DRAWER_KEYBOARD = {"remove_keyboard": True}
+TELEGRAM_INLINE_KEYBOARD = {"remove_keyboard": True}
 
 
 def setup_telegram_bot_commands():
@@ -514,6 +497,7 @@ class MT5CockpitEngine:
         self.magic_number = int(self.creds.get("magic_number", MAGIC_NUMBER))
         self.autopilot_enabled = True
         self.is_connected = False
+        self.is_cloud_mode = False
         self.last_connect_error = None
         self.managed_positions_state = {}
         self.positions_file = os.path.join(LOGS_DIR, "active_positions.json")
@@ -645,19 +629,44 @@ class MT5CockpitEngine:
                 return True
 
     def ensure_connected(self) -> bool:
+        if not self.is_connected or getattr(self, "is_cloud_mode", False) or mt5 is None:
+            if not self.try_attach_wine_mt5():
+                self.try_attach_native_windows_mt5()
         if not self.is_connected:
             return self.connect()
         return True
 
-    def try_attach_wine_mt5(self):
-        if not getattr(self, "is_cloud_mode", False):
-            return
+    def try_attach_native_windows_mt5(self) -> bool:
+        if sys.platform != "win32" or not HAS_MT5_LIB:
+            return False
+        global mt5
+        try:
+            term_path = find_mt5_terminal_path(self.creds.get("terminal_path"))
+            if mt5 and mt5.initialize(path=term_path):
+                login = int(self.creds.get("login", 57452535486)) if str(self.creds.get("login", "")).isdigit() else 57452535486
+                password = str(self.creds.get("password", "1zQbW!Xc")).strip()
+                server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
+                if login and password:
+                    mt5.login(login=login, password=password, server=server)
+                acc = mt5.account_info()
+                if acc and getattr(acc, 'login', None):
+                    self.is_connected = True
+                    self.is_cloud_mode = False
+                    self.log_event(f"🚀 [Native MT5 Live] Connected to GTC Broker: #{acc.login} | Server: {acc.server} | Balance: ${acc.balance:.2f} | Equity: ${acc.equity:.2f}")
+                    return True
+        except Exception as e:
+            self.log_event(f"⚠️ Native Windows MT5 attach notice: {e}")
+        return False
+
+    def try_attach_wine_mt5(self) -> bool:
+        global mt5, HAS_MT5_LIB
+        if not getattr(self, "is_cloud_mode", False) and self.is_connected and mt5 is not None:
+            return True
         if not is_port_open("127.0.0.1", 18812, timeout=0.15):
-            return
+            return False
         try:
             conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812, timeout=2)
             if test_mt5 is not None:
-                global mt5, HAS_MT5_LIB
                 init_ok = False
                 try:
                     init_ok = bool(test_mt5.initialize())
@@ -691,8 +700,10 @@ class MT5CockpitEngine:
                         self.is_cloud_mode = False
                         self.last_connect_error = None
                         self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
+                        return True
         except Exception:
             pass
+        return False
 
     def update_credentials(self, new_config: dict) -> dict:
         with self.lock:
@@ -1336,10 +1347,19 @@ class MT5CockpitEngine:
             tp = round(price + (tp_pips * pip_unit) if is_buy else price - (tp_pips * pip_unit), digits)
 
         result = None
+        if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None or s_info is None:
+            self.ensure_connected()
+            if HAS_MT5_LIB and mt5 and s_info is None:
+                try:
+                    mt5.symbol_select(symbol, True)
+                    s_info = mt5.symbol_info(symbol)
+                except Exception:
+                    pass
+
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 and s_info:
             try:
                 order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
-                filling_mode = getattr(s_info, 'filling_mode', 0)
+                filling_mode = getattr(s_info, 'filling_mode', 2)
                 filling = mt5.ORDER_FILLING_IOC if (filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
                 request = {
                     "action": int(mt5.TRADE_ACTION_DEAL),
@@ -1356,8 +1376,11 @@ class MT5CockpitEngine:
                     "type_filling": int(filling),
                 }
                 result = mt5.order_send(request)
-                if rpyc and hasattr(rpyc.classic, 'obtain'):
-                    result = rpyc.classic.obtain(result)
+                if rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
+                    try:
+                        result = rpyc.classic.obtain(result)
+                    except Exception:
+                        pass
             except Exception as e:
                 self.log_event(f"⚠️ Native MT5 send notice: {e}")
 
@@ -1371,8 +1394,10 @@ class MT5CockpitEngine:
             else:
                 comment = getattr(result, "comment", "Order rejected by broker")
                 self.log_event(f"❌ Real Broker Order Rejection: {comment} (Retcode: {retcode}) for {action} {volume} {symbol}")
-                err_text = f"Broker Rejected Order: {comment} (Code {retcode})"
-                if retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
+                err_text = f"بروکر سفارش را رد کرد: {comment} (کد خطا: {retcode})"
+                if retcode == 10027 or "AutoTrading disabled" in str(comment) or "AutoTrading" in str(comment):
+                    err_text = "دکمه معاملات خودکار (Algo Trading) در نرم‌افزار متاتریدر ۵ خاموش است (کد خطا: 10027). لطفاً در بالای پنجره متاتریدر ۵ روی دکمه 'Algo Trading' کلیک فرمایید تا سبز شود (یا کلیدهای ترکیبی Ctrl+E را فشار دهید) تا سفارشات در متاتریدر ثبت شوند."
+                elif retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
                     err_text = f"بازار فارکس در حال حاضر بسته است (Market is closed - Code {retcode}). معاملات در روزهای شنبه و یکشنبه روی جفت‌ارزهای فارکس بسته است و از بامداد دوشنبه بازگشایی می‌شود."
                 return {
                     "success": False,
@@ -1381,27 +1406,13 @@ class MT5CockpitEngine:
                     "comment": str(comment)
                 }
         else:
-            # Standby Cloud Gateway simulator (when MT5 terminal is still connecting or Wine offline)
-            ticket = int(self.creds.get('login', 57452535486)) % 1000000000 + int(time.time() * 100) % 90000
-            exec_mode = "CLOUD_HYBRID_STANDBY"
-            pos_obj = {
-                "ticket": ticket,
-                "symbol": symbol,
-                "type": 0 if is_buy else 1,
-                "action": action.upper(),
-                "volume": float(volume),
-                "price_open": price,
-                "sl": sl,
-                "tp": tp,
-                "tp2": anti_hunt["tp2"],
-                "profit": 0.0,
-                "magic": self.magic_number,
-                "time": datetime.datetime.now().isoformat(),
-                "comment": "QuantFX-CloudEngine (Standby Mode)"
+            err_text = "خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است! برای حفظ سرمایه شما سفارش به صورت نمایشی ثبت نشد. لطفاً وضعیت ترمینال MT5 را بررسی کنید."
+            self.log_event(f"❌ Order Blocked: MT5 disconnected. Refusing simulated fill for {action} {volume} {symbol}")
+            return {
+                "success": False,
+                "error": err_text,
+                "mode": "DISCONNECTED"
             }
-            self.tracked_positions[ticket] = pos_obj
-            self.save_tracked_positions()
-            self.log_event(f"🎯 Execution Placed (Cloud Standby Simulator): {action} {volume} {symbol} @ {price} | Ticket #{ticket} | Dynamic Anti-Hunt SL: {sl}")
 
         # Generate chart photo & dispatch Telegram Photo + Message asynchronously in background
         chart_path = os.path.join(LOGS_DIR, f"chart_{symbol}_{ticket}.png")
@@ -1658,6 +1669,9 @@ class MT5CockpitEngine:
         while True:
             try:
                 time.sleep(3)
+                if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+                    self.ensure_connected()
+
                 if not self.autopilot_enabled:
                     continue
 
@@ -1890,8 +1904,15 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
                 f"حد ضررهای ضد هانت و عکس‌های چارت زنده به‌صورت آنی به این چت مخابره می‌شود.\n\n"
                 f"💼 <b>حساب متصل:</b> <code>#57452535486</code> (GTC-Demo $100)\n"
                 f"🤖 <b>موتور تصمیم‌گیر:</b> Gemini Decision 1 + Quant Multi-Key\n\n"
-                f"📱 <b>صفحه کلید کشویی باکسی (Drawer Keyboard):</b>\n"
-                f"دکمه‌های باکسی زیر همیشه همراه شما در پایین صفحه چت قرار دارند و می‌توانید با زدن آیکون کیبورد تلگرام، آن‌ها را باز یا جمع کنید 👇"
+                f"📱 <b>دستورات در دسترس از طریق دکمه Menu یا علامت /:</b>\n"
+                f"• <code>/balance</code> — استعلام موجودی و اکوئیتی\n"
+                f"• <code>/positions</code> — مشاهده پوزیشن‌های باز زنده\n"
+                f"• <code>/chart</code> — عکس چارت تحلیلی ICT با خطوط SL/TP\n"
+                f"• <code>/signals</code> — برترین سیگنال‌های ماتریس ۲۸ جفت‌ارز\n"
+                f"• <code>/risk</code> — وضعیت سپرهای ۷ گانه مدیریت ریسک\n"
+                f"• <code>/rates</code> — استعلام نرخ لحظه‌ای بازار\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"برای مشاهده فهرست، دکمه آبی <b>Menu</b> در کنار کادر پیام را لمس فرمایید."
             )
             dispatch_telegram_alert(welcome, reply_markup=TELEGRAM_DRAWER_KEYBOARD, target_chat_id=sender_chat)
 
@@ -1937,9 +1958,6 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
                     sender_chat = str(update["message"].get("chat", {}).get("id", chat_id))
                     msg_text = update["message"]["text"].strip()
                     handle_action(msg_text, sender_chat)
-
-        except Exception as ex:
-            time.sleep(3)
 
         except Exception as ex:
             time.sleep(3)
