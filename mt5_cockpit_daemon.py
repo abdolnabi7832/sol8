@@ -498,7 +498,10 @@ class MT5CockpitEngine:
         self.autopilot_enabled = True
         self.is_connected = False
         self.is_cloud_mode = False
+        self.rpyc_conn = None
+        self.mt5_rpc_lock = threading.RLock()
         self.last_connect_error = None
+        self.last_order_error = None
         self.managed_positions_state = {}
         self.positions_file = os.path.join(LOGS_DIR, "active_positions.json")
         self.tracked_positions = self.load_tracked_positions()
@@ -659,14 +662,15 @@ class MT5CockpitEngine:
             self.log_event(f"⚠️ Native Windows MT5 attach notice: {e}")
         return False
 
-    def try_attach_wine_mt5(self) -> bool:
+    def try_attach_wine_mt5(self, force: bool = False) -> bool:
         global mt5, HAS_MT5_LIB
-        if not getattr(self, "is_cloud_mode", False) and self.is_connected and mt5 is not None:
-            return True
+        if not force and not getattr(self, "is_cloud_mode", False) and self.is_connected and mt5 is not None:
+            if self.rpyc_conn is not None and not getattr(self.rpyc_conn, "closed", False):
+                return True
         if not is_port_open("127.0.0.1", 18812, timeout=0.15):
             return False
         try:
-            conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812, timeout=2)
+            conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812, timeout=10)
             if test_mt5 is not None:
                 init_ok = False
                 try:
@@ -1308,21 +1312,27 @@ class MT5CockpitEngine:
         s_info = None
 
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
-            try:
-                s_info = mt5.symbol_info(symbol)
-                if not s_info:
-                    mt5.symbol_select(symbol, True)
-                    s_info = mt5.symbol_info(symbol)
-                if s_info:
-                    if not s_info.visible:
-                        mt5.symbol_select(symbol, True)
-                    tick = mt5.symbol_info_tick(symbol)
-                    if tick:
-                        price = tick.ask if is_buy else tick.bid
-                        digits = s_info.digits
-                        pip_unit = s_info.point * (10 if digits in (3, 5) else 1)
-            except Exception:
-                pass
+            for attempt in range(2):
+                try:
+                    with self.mt5_rpc_lock:
+                        s_info = mt5.symbol_info(symbol)
+                        if not s_info:
+                            mt5.symbol_select(symbol, True)
+                            s_info = mt5.symbol_info(symbol)
+                        if s_info:
+                            if not s_info.visible:
+                                mt5.symbol_select(symbol, True)
+                            tick = mt5.symbol_info_tick(symbol)
+                            if tick:
+                                price = tick.ask if is_buy else tick.bid
+                                digits = s_info.digits
+                                pip_unit = s_info.point * (10 if digits in (3, 5) else 1)
+                    break
+                except Exception as e:
+                    self.last_order_error = f"symbol_info/tick error (attempt {attempt+1}): {e}"
+                    self.log_event(f"⚠️ {self.last_order_error}")
+                    if sys.platform != "win32" and attempt == 0:
+                        self.try_attach_wine_mt5(force=True)
 
         if price is None:
             if os.path.exists(CANDLES_FILE):
@@ -1362,30 +1372,32 @@ class MT5CockpitEngine:
 
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 and s_info:
             try:
-                order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
-                filling_mode = getattr(s_info, 'filling_mode', 2)
-                filling = mt5.ORDER_FILLING_IOC if (filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
-                request = {
-                    "action": int(mt5.TRADE_ACTION_DEAL),
-                    "symbol": str(symbol),
-                    "volume": float(volume),
-                    "type": int(order_type),
-                    "price": float(price),
-                    "sl": float(sl),
-                    "tp": float(tp),
-                    "deviation": 20,
-                    "magic": int(self.magic_number),
-                    "comment": "QuantFX-AntiHunt v7.0",
-                    "type_time": int(mt5.ORDER_TIME_GTC),
-                    "type_filling": int(filling),
-                }
-                result = mt5.order_send(request)
-                if rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
-                    try:
-                        result = rpyc.classic.obtain(result)
-                    except Exception:
-                        pass
+                with self.mt5_rpc_lock:
+                    order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
+                    filling_mode = getattr(s_info, 'filling_mode', 2)
+                    filling = mt5.ORDER_FILLING_IOC if (filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
+                    request = {
+                        "action": int(mt5.TRADE_ACTION_DEAL),
+                        "symbol": str(symbol),
+                        "volume": float(volume),
+                        "type": int(order_type),
+                        "price": float(price),
+                        "sl": float(sl),
+                        "tp": float(tp),
+                        "deviation": 20,
+                        "magic": int(self.magic_number),
+                        "comment": "QuantFX-AntiHunt v7.0",
+                        "type_time": int(mt5.ORDER_TIME_GTC),
+                        "type_filling": int(filling),
+                    }
+                    result = mt5.order_send(request)
+                    if rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
+                        try:
+                            result = rpyc.classic.obtain(result)
+                        except Exception:
+                            pass
             except Exception as e:
+                self.last_order_error = f"order_send exception: {e}"
                 self.log_event(f"⚠️ Native MT5 send notice: {e}")
 
         # If native execution was attempted on MT5
@@ -1410,12 +1422,14 @@ class MT5CockpitEngine:
                     "comment": str(comment)
                 }
         else:
-            err_text = "خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است! برای حفظ سرمایه شما سفارش به صورت نمایشی ثبت نشد. لطفاً وضعیت ترمینال MT5 را بررسی کنید."
-            self.log_event(f"❌ Order Blocked: MT5 disconnected. Refusing simulated fill for {action} {volume} {symbol}")
+            detail = f" ({self.last_order_error})" if getattr(self, "last_order_error", None) else (" (s_info=None)" if s_info is None else "")
+            err_text = f"خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است{detail}! برای حفظ سرمایه شما سفارش به صورت نمایشی ثبت نشد. لطفاً وضعیت ترمینال MT5 را بررسی کنید."
+            self.log_event(f"❌ Order Blocked: MT5 disconnected{detail}. Refusing simulated fill for {action} {volume} {symbol}")
             return {
                 "success": False,
                 "error": err_text,
-                "mode": "DISCONNECTED"
+                "mode": "DISCONNECTED",
+                "detail": self.last_order_error
             }
 
         # Generate chart photo & dispatch Telegram Photo + Message asynchronously in background
@@ -2092,8 +2106,10 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                 "is_connected": self.engine.is_connected,
                 "is_cloud_mode": getattr(self.engine, "is_cloud_mode", None),
                 "has_mt5_lib": HAS_MT5_LIB,
+                "rpyc_conn_closed": getattr(getattr(self.engine, "rpyc_conn", None), "closed", "no_conn"),
                 "port_18812_open": is_port_open("127.0.0.1", 18812, timeout=0.3),
                 "last_connect_error": self.engine.last_connect_error,
+                "last_order_error": getattr(self.engine, "last_order_error", None),
                 "events": self.engine.event_logs[-20:],
                 "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5server", "xvfb", "python", "java"))],
                 "mt5_terminal_log": term_log,
