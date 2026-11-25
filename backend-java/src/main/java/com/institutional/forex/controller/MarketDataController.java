@@ -213,6 +213,23 @@ public class MarketDataController {
         return ResponseEntity.ok(Map.of("connected", true, "mode", "CLOUD_GATEWAY", "login", 57452535486L, "balance", 100.0, "equity", 100.0, "leverage", 500));
     }
 
+    @GetMapping("/mt5/debug")
+    public ResponseEntity<?> getMt5Debug() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://127.0.0.1:8085/api/mt5/debug"))
+                    .timeout(Duration.ofSeconds(4))
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return ResponseEntity.status(resp.statusCode())
+                    .header("Content-Type", "application/json")
+                    .body(resp.body());
+        } catch (Exception e) {
+            return ResponseEntity.status(502).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/mt5/positions")
     public ResponseEntity<List<Object>> getMt5Positions() {
         try {

@@ -10,7 +10,7 @@ export WINEDEBUG=-all
 export WINEPREFIX=/root/.wine
 export WINEARCH=win64
 export WINEDLLOVERRIDES="mscoree,mshtml="
-export PATH="/usr/lib/wine:${PATH}"
+export PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
 # 1. Start Xvfb Virtual Framebuffer
 echo "🖥️  Starting Xvfb Virtual Framebuffer on :99..."
@@ -25,16 +25,47 @@ if [ ! -f /app/mt5/terminal64.exe ]; then
     echo "✅ MT5 Terminal unpacked successfully."
 fi
 
-# Detect Wine executable
+# Ensure portable MT5 Config enables AlgoTrading & Python API
+mkdir -p /app/mt5/Config
+cat > /app/mt5/Config/common.ini << 'EOF'
+[Common]
+Login=57452535486
+Server=GTCGlobalTrade-Demo
+[Experts]
+AllowDllImport=1
+Enabled=1
+Account=0
+Profile=0
+Chart=0
+Api=1
+EOF
+
+cat > /app/mt5/start.ini << 'EOF'
+[Common]
+Login=57452535486
+Password=1zQbW!Xc
+Server=GTCGlobalTrade-Demo
+[StartUp]
+Login=57452535486
+Password=1zQbW!Xc
+Server=GTCGlobalTrade-Demo
+AutoConfiguration=false
+[Experts]
+Enabled=1
+AllowDllImport=1
+Api=1
+EOF
+
+# Detect Wine executable (prefer WineHQ Stable)
 WINE_BIN=""
-for candidate in "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
+for candidate in "/opt/wine-stable/bin/wine64" "/opt/wine-stable/bin/wine" "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
     if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then
         WINE_BIN="$candidate"
         break
     fi
 done
 
-echo "🍷 Using Wine binary: $WINE_BIN"
+echo "🍷 Using Wine binary: $WINE_BIN ($($WINE_BIN --version 2>/dev/null || true))"
 
 # 3. Launch MetaTrader 5 Terminal64 inside Wine64 if Wine is available
 if [ -n "$WINE_BIN" ]; then
@@ -52,7 +83,7 @@ if [ -n "$WINE_BIN" ]; then
         cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true
     fi
 
-    # Configure Wine overrides to prefer native UCRT DLLs (resolves fetestexcept error)
+    # Configure Wine overrides to prefer native UCRT DLLs
     export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
     export WINEDEBUG=-all
     $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
@@ -60,17 +91,17 @@ if [ -n "$WINE_BIN" ]; then
 
     echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine64..."
     cd /app/mt5
-    $WINE_BIN terminal64.exe /portable /login:57452535486 /password:1zQbW!Xc /server:GTCGlobalTrade-Demo &
-    sleep 8
+    $WINE_BIN terminal64.exe /portable /config:Z:\\app\\mt5\\start.ini /login:57452535486 /password:1zQbW!Xc /server:GTCGlobalTrade-Demo >> /tmp/mt5_terminal.log 2>&1 &
+    sleep 10
 
     # 4. Launch mt5server.exe RPyC Bridge on Port 18812
     if [ -f /app/mt5/mt5server.exe ]; then
         echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-        $WINE_BIN mt5server.exe --host 0.0.0.0 -p 18812 &
+        $WINE_BIN mt5server.exe --host 0.0.0.0 -p 18812 >> /tmp/mt5_server.log 2>&1 &
         sleep 3
     elif [ -f /app/mt5server.exe ]; then
         echo "⚡ Launching mt5server.exe RPyC Bridge on Port 18812..."
-        $WINE_BIN /app/mt5server.exe --host 0.0.0.0 -p 18812 &
+        $WINE_BIN /app/mt5server.exe --host 0.0.0.0 -p 18812 >> /tmp/mt5_server.log 2>&1 &
         sleep 3
     fi
     cd /app

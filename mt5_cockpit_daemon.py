@@ -576,6 +576,7 @@ class MT5CockpitEngine:
                             except Exception:
                                 pass
                             if acc and getattr(acc, 'login', None):
+                                self.rpyc_conn = conn
                                 mt5 = test_mt5
                                 HAS_MT5_LIB = True
                                 self.is_connected = True
@@ -694,6 +695,7 @@ class MT5CockpitEngine:
                     except Exception:
                         pass
                     if acc and getattr(acc, 'login', None):
+                        self.rpyc_conn = conn
                         mt5 = test_mt5
                         HAS_MT5_LIB = True
                         self.is_connected = True
@@ -701,8 +703,8 @@ class MT5CockpitEngine:
                         self.last_connect_error = None
                         self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
                         return True
-        except Exception:
-            pass
+        except Exception as e:
+            self.last_connect_error = str(e)
         return False
 
     def update_credentials(self, new_config: dict) -> dict:
@@ -759,6 +761,8 @@ class MT5CockpitEngine:
             floating_pnl = sum(float(p.get("profit", 0.0)) for p in active_list)
             return {
                 "connected": True,
+                "live_broker_attached": False,
+                "mode": "STANDBY_DISCONNECTED",
                 "login": str(self.creds.get("login", 57452535486)),
                 "name": "Mohammad Nekookar",
                 "company": "GTC Global Trade Capital Co. Limited",
@@ -2062,6 +2066,41 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
         elif path == "/api/mt5/events":
             self._set_cors_headers()
             self.wfile.write(json.dumps(self.engine.event_logs[-50:]).encode("utf-8"))
+
+        elif path == "/api/mt5/debug":
+            import subprocess
+            ps_out = ""
+            try:
+                ps_out = subprocess.check_output(["ps", "aux"], timeout=2).decode("utf-8", errors="replace")
+            except Exception as ex:
+                ps_out = str(ex)
+            term_log = ""
+            srv_log = ""
+            for p, name in [("/tmp/mt5_terminal.log", "term"), ("/tmp/mt5_server.log", "srv")]:
+                if os.path.exists(p):
+                    try:
+                        with open(p, "r", encoding="utf-8", errors="replace") as lf:
+                            txt = lf.read()[-2500:]
+                            if name == "term":
+                                term_log = txt
+                            else:
+                                srv_log = txt
+                    except Exception:
+                        pass
+            dbg = {
+                "platform": sys.platform,
+                "is_connected": self.engine.is_connected,
+                "is_cloud_mode": getattr(self.engine, "is_cloud_mode", None),
+                "has_mt5_lib": HAS_MT5_LIB,
+                "port_18812_open": is_port_open("127.0.0.1", 18812, timeout=0.3),
+                "last_connect_error": self.engine.last_connect_error,
+                "events": self.engine.event_logs[-20:],
+                "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5server", "xvfb", "python", "java"))],
+                "mt5_terminal_log": term_log,
+                "mt5_server_log": srv_log
+            }
+            self._set_cors_headers()
+            self.wfile.write(json.dumps(dbg, ensure_ascii=False).encode("utf-8"))
 
         elif path == "/api/mt5/config":
             self._set_cors_headers()

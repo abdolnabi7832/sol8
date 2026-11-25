@@ -19,13 +19,12 @@ ENV WINEPREFIX=/root/.wine
 ENV WINEARCH=win64
 ENV DISPLAY=:99
 ENV WINEDEBUG=-all
-ENV PATH="/usr/lib/wine:${PATH}"
+ENV PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
-# Install Pure Wine64, Xvfb, XZ utils, and system monitoring utilities
-RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sources.list && \
+# Install base tools + official WineHQ Stable (Wine 9/10+) + Xvfb for modern MetaTrader 5
+RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        wine64 \
         xvfb \
         xz-utils \
         tar \
@@ -35,12 +34,14 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu/ jammy universe" >> /etc/apt/sour
         fonts-dejavu-core \
         fonts-liberation \
         curl \
-        procps \
-        ca-certificates && \
-    ln -sf /usr/lib/wine/wine64 /usr/bin/wine64 && \
-    ln -sf /usr/lib/wine/wine64 /usr/bin/wine && \
-    ln -sf /usr/lib/wine/wineserver64 /usr/bin/wineserver && \
-    ln -sf /usr/lib/wine/wineserver64 /usr/lib/wine/wineserver && \
+        gnupg2 \
+        ca-certificates \
+        procps && \
+    mkdir -pm755 /etc/apt/keyrings && \
+    curl -fsSL https://dl.winehq.org/wine-builds/winehq.key -o /etc/apt/keyrings/winehq-archive.key && \
+    curl -fsSL https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources -o /etc/apt/sources.list.d/winehq-jammy.sources && \
+    apt-get update && \
+    apt-get install -y --install-recommends winehq-stable && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python requirements (including rpyc)
