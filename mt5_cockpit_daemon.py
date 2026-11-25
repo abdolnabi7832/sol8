@@ -1301,7 +1301,7 @@ class MT5CockpitEngine:
         return output
 
     def ensure_wine_algotrading_enabled(self):
-        """Ensure Algo Trading (Ctrl+E) is enabled in headless Wine MT5 on Linux."""
+        """Ensure Algo Trading (Ctrl+E) is enabled in headless Wine MT5 via Win32 user32 inside Wine."""
         if sys.platform == "win32" or getattr(self, "rpyc_conn", None) is None:
             return
         try:
@@ -1310,23 +1310,45 @@ class MT5CockpitEngine:
                 trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
                 tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
             if not trade_allowed or tradeapi_disabled:
-                import subprocess
-                env = os.environ.copy()
-                env["DISPLAY"] = env.get("DISPLAY", ":99")
-                cmd = (
-                    "WID=$(xdotool search --onlyvisible --name '57452535486' | head -n1); "
-                    "if [ -z \"$WID\" ]; then WID=$(xdotool search --onlyvisible --name 'GTC' | head -n1); fi; "
-                    "if [ -z \"$WID\" ]; then WID=$(xdotool search --onlyvisible --class 'terminal64' | head -n1); fi; "
-                    "echo WID=$WID; "
-                    "if [ -n \"$WID\" ]; then xdotool windowfocus $WID 2>/dev/null || true; xdotool key --window $WID --clearmodifiers ctrl+e; else xdotool key --clearmodifiers ctrl+e; fi"
-                )
-                out = subprocess.run(["bash", "-c", cmd], env=env, timeout=3, capture_output=True, text=True, check=False)
-                time.sleep(0.5)
+                win32_code = """
+import ctypes, time, MetaTrader5 as _mt5
+user32 = ctypes.windll.user32
+WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+_wins = []
+def _cb(hwnd, lparam):
+    if user32.IsWindowVisible(hwnd):
+        buf = ctypes.create_unicode_buffer(256)
+        user32.GetWindowTextW(hwnd, buf, 256)
+        if buf.value:
+            _wins.append((hwnd, buf.value))
+    return True
+user32.EnumWindows(WNDENUMPROC(_cb), 0)
+_target = None
+for h, title in _wins:
+    if '57452535486' in title or 'GTC' in title or 'MetaTrader' in title:
+        _target = (h, title)
+        break
+if _target:
+    user32.ShowWindow(_target[0], 9)
+    user32.SetForegroundWindow(_target[0])
+    time.sleep(0.2)
+    user32.keybd_event(0x11, 0, 0, 0)
+    user32.keybd_event(0x45, 0, 0, 0)
+    time.sleep(0.05)
+    user32.keybd_event(0x45, 0, 2, 0)
+    user32.keybd_event(0x11, 0, 2, 0)
+    time.sleep(0.5)
+_ti = _mt5.terminal_info()
+_ta = bool(_ti.trade_allowed) if _ti else False
+_tad = bool(_ti.tradeapi_disabled) if _ti else True
+_win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
+"""
                 with self.mt5_rpc_lock:
-                    self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False; _tad = bool(_ti.tradeapi_disabled) if _ti else True")
+                    self.rpyc_conn.execute(win32_code)
                     trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
                     tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
-                self.log_event(f"⚡ [Wine MT5 AlgoTrading] {out.stdout.strip()} -> trade_allowed={trade_allowed}, tradeapi_disabled={tradeapi_disabled}")
+                    win_dbg = str(self.rpyc_conn.namespace.get("_win_dbg", ""))
+                self.log_event(f"⚡ [Wine MT5 Win32 Ctrl+E] win={win_dbg} -> trade_allowed={trade_allowed}, tradeapi_disabled={tradeapi_disabled}")
         except Exception as e:
             self.log_event(f"⚠️ Wine AlgoTrading toggle notice: {e}")
 
