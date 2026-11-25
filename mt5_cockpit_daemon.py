@@ -1299,6 +1299,27 @@ class MT5CockpitEngine:
 
         return output
 
+    def _mt5_order_send(self, request: dict):
+        """Send an MT5 trade request safely across native Windows or remote RPyC Wine."""
+        with self.mt5_rpc_lock:
+            payload = request
+            if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
+                payload = self.rpyc_conn.builtins.dict(**request)
+            result = mt5.order_send(payload)
+            if result is None:
+                try:
+                    last_err = mt5.last_error()
+                    self.last_order_error = f"mt5.order_send returned None (last_error={last_err})"
+                    self.log_event(f"⚠️ {self.last_order_error}")
+                except Exception:
+                    pass
+            elif rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
+                try:
+                    result = rpyc.classic.obtain(result)
+                except Exception:
+                    pass
+            return result
+
     def execute_order(self, symbol: str, action: str, volume: float = 0.01, sl_pips: float = None, tp_pips: float = None) -> dict:
         if not self.ensure_connected():
             return {"success": False, "error": "MT5 Not Initialized"}
@@ -1390,12 +1411,7 @@ class MT5CockpitEngine:
                         "type_time": int(mt5.ORDER_TIME_GTC),
                         "type_filling": int(filling),
                     }
-                    result = mt5.order_send(request)
-                    if rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
-                        try:
-                            result = rpyc.classic.obtain(result)
-                        except Exception:
-                            pass
+                    result = self._mt5_order_send(request)
             except Exception as e:
                 self.last_order_error = f"order_send exception: {e}"
                 self.log_event(f"⚠️ Native MT5 send notice: {e}")
@@ -1519,19 +1535,19 @@ class MT5CockpitEngine:
             try:
                 close_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
                 request = {
-                    "action": mt5.TRADE_ACTION_DEAL,
-                    "position": ticket,
-                    "symbol": symbol,
-                    "volume": pos["volume"],
-                    "type": close_type,
-                    "price": close_price,
+                    "action": int(mt5.TRADE_ACTION_DEAL),
+                    "position": int(ticket),
+                    "symbol": str(symbol),
+                    "volume": float(pos["volume"]),
+                    "type": int(close_type),
+                    "price": float(close_price),
                     "deviation": 20,
-                    "magic": self.magic_number,
+                    "magic": int(self.magic_number),
                     "comment": "QuantFX-Close",
-                    "type_time": mt5.ORDER_TIME_GTC,
-                    "type_filling": mt5.ORDER_FILLING_IOC,
+                    "type_time": int(mt5.ORDER_TIME_GTC),
+                    "type_filling": int(mt5.ORDER_FILLING_IOC),
                 }
-                mt5.order_send(request)
+                self._mt5_order_send(request)
             except Exception:
                 pass
 
@@ -1649,7 +1665,7 @@ class MT5CockpitEngine:
                     "type_time": mt5.ORDER_TIME_GTC,
                     "type_filling": mt5.ORDER_FILLING_IOC,
                 }
-                mt5.order_send(req)
+                self._mt5_order_send(req)
 
         # Move SL to Breakeven + 2 pips buffer (securing spread & commission)
         s_info = mt5.symbol_info(pos["symbol"])
@@ -1659,13 +1675,13 @@ class MT5CockpitEngine:
         be_sl = round(open_price + (2.0 * pip_unit if is_buy else -2.0 * pip_unit), digits)
 
         sl_req = {
-            "action": mt5.TRADE_ACTION_SLTP,
-            "position": ticket,
-            "symbol": pos["symbol"],
-            "sl": be_sl,
-            "tp": pos["tp"]
+            "action": int(mt5.TRADE_ACTION_SLTP),
+            "position": int(ticket),
+            "symbol": str(pos["symbol"]),
+            "sl": float(be_sl),
+            "tp": float(pos["tp"])
         }
-        res = mt5.order_send(sl_req)
+        res = self._mt5_order_send(sl_req)
 
         self.managed_positions_state[ticket] = {'be_set': True, 'tp1_banked': True}
         self.log_event(f"🛡️ Position Secured: #{ticket} ({pos['symbol']}) - 50% Profit Banked + Breakeven SL locked @ {be_sl}")
@@ -1744,13 +1760,13 @@ class MT5CockpitEngine:
                             if s_info:
                                 anti = self.compute_dynamic_anti_hunt(p_data["symbol"], p_data["type"], p_data["open_price"])
                                 sl_req = {
-                                    "action": mt5.TRADE_ACTION_SLTP,
-                                    "position": t,
-                                    "symbol": p_data["symbol"],
-                                    "sl": anti["sl"],
-                                    "tp": anti["tp1"]
+                                    "action": int(mt5.TRADE_ACTION_SLTP),
+                                    "position": int(t),
+                                    "symbol": str(p_data["symbol"]),
+                                    "sl": float(anti["sl"]),
+                                    "tp": float(anti["tp1"])
                                 }
-                                mt5.order_send(sl_req)
+                                self._mt5_order_send(sl_req)
                                 self.log_event(f"🛡️ Auto-applied Dynamic Anti-Hunt SL for #{t} ({p_data['symbol']}): SL={anti['sl']}, TP={anti['tp1']}")
 
                 # 2. Detect Closed Positions
