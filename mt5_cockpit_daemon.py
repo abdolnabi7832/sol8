@@ -500,6 +500,13 @@ class MT5CockpitEngine:
         self.is_cloud_mode = False
         self.rpyc_conn = None
         self.mt5_rpc_lock = threading.RLock()
+        self.bridge_lock = threading.Lock()
+        self.last_bridge_poll_ts = 0.0
+        self.bridge_account = None
+        self.bridge_positions = []
+        self.pending_bridge_commands = []
+        self.bridge_waiters = {}
+        self.bridge_results = {}
         self.last_connect_error = None
         self.last_order_error = None
         self.managed_positions_state = {}
@@ -759,8 +766,31 @@ class MT5CockpitEngine:
             "last_error": self.last_connect_error
         }
 
+    def is_bridge_online(self) -> bool:
+        return (time.time() - getattr(self, "last_bridge_poll_ts", 0.0)) < 12.0
+
+    def dispatch_to_bridge(self, cmd_type: str, payload: dict, timeout: float = 12.0) -> dict:
+        cmd_id = f"{cmd_type}_{int(time.time()*1000)}_{len(self.pending_bridge_commands)}"
+        ev = threading.Event()
+        with self.bridge_lock:
+            self.bridge_waiters[cmd_id] = ev
+            self.pending_bridge_commands.append({"id": cmd_id, "type": cmd_type, "payload": payload})
+        if ev.wait(timeout):
+            with self.bridge_lock:
+                self.bridge_waiters.pop(cmd_id, None)
+                return self.bridge_results.pop(cmd_id, {"success": False, "error": "Empty bridge result"})
+        with self.bridge_lock:
+            self.bridge_waiters.pop(cmd_id, None)
+            self.pending_bridge_commands = [c for c in self.pending_bridge_commands if c["id"] != cmd_id]
+        return {"success": False, "error": "تایم‌اوت در ارتباط با پل ویندوزی MT5 (Bridge Timeout)"}
+
     def get_account_summary(self) -> dict:
         if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+            if self.is_bridge_online() and isinstance(self.bridge_account, dict):
+                acc_copy = dict(self.bridge_account)
+                acc_copy["live_broker_attached"] = True
+                acc_copy["mode"] = "WINDOWS_BRIDGE_MT5"
+                return acc_copy
             c_bal = float(getattr(self, "cloud_balance", 100.0))
             active_list = self.get_live_positions()
             floating_pnl = sum(float(p.get("profit", 0.0)) for p in active_list)
@@ -923,6 +953,8 @@ class MT5CockpitEngine:
         }
 
     def get_live_positions(self) -> list:
+        if getattr(self, "is_cloud_mode", False) and self.is_bridge_online():
+            return list(self.bridge_positions or [])
         result = []
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
             try:
@@ -1505,8 +1537,16 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                     "comment": str(comment)
                 }
         else:
+            if self.is_bridge_online():
+                return self.dispatch_to_bridge("ORDER", {
+                    "symbol": symbol,
+                    "action": action,
+                    "volume": float(volume),
+                    "sl_pips": sl_pips,
+                    "tp_pips": tp_pips
+                })
             detail = f" ({self.last_order_error})" if getattr(self, "last_order_error", None) else (" (s_info=None)" if s_info is None else "")
-            err_text = f"خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است{detail}! برای حفظ سرمایه شما سفارش به صورت نمایشی ثبت نشد. لطفاً وضعیت ترمینال MT5 را بررسی کنید."
+            err_text = f"خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است{detail}! لطفاً فایل run_mt5_live_windows.bat را روی ویندوز خود اجرا کنید (و Ctrl+E را در متاتریدر بزنید) تا سفارشات مستقیماً در بروکر ثبت شوند."
             self.log_event(f"❌ Order Blocked: MT5 disconnected{detail}. Refusing simulated fill for {action} {volume} {symbol}")
             return {
                 "success": False,
@@ -1549,6 +1589,8 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
         return {"success": True, "status": "SUCCESS", "ticket": ticket, "order": ticket, "deal": ticket, "symbol": symbol, "action": action, "volume": volume, "price": price, "sl": sl, "tp": tp, "mode": exec_mode}
 
     def close_position(self, ticket: int, reason: str = "خروج دستی کاربر") -> dict:
+        if getattr(self, "is_cloud_mode", False) and self.is_bridge_online():
+            return self.dispatch_to_bridge("CLOSE", {"ticket": ticket, "reason": reason})
         if not self.ensure_connected():
             return {"success": False, "error": "MT5 Not Initialized"}
         
@@ -2385,6 +2427,30 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             self._set_cors_headers()
             self.wfile.write(json.dumps({"autopilot_enabled": self.engine.autopilot_enabled}).encode("utf-8"))
 
+        elif path == "/api/mt5/bridge/poll":
+            with self.engine.bridge_lock:
+                self.engine.last_bridge_poll_ts = time.time()
+                if "account" in params and isinstance(params["account"], dict):
+                    self.engine.bridge_account = params["account"]
+                if "positions" in params and isinstance(params["positions"], list):
+                    self.engine.bridge_positions = params["positions"]
+                cmds = list(self.engine.pending_bridge_commands)
+                self.engine.pending_bridge_commands.clear()
+            self._set_cors_headers()
+            self.wfile.write(json.dumps({"success": True, "commands": cmds}).encode("utf-8"))
+
+        elif path == "/api/mt5/bridge/result":
+            cmd_id = params.get("id")
+            res_obj = params.get("result", {"success": False, "error": "Missing result"})
+            with self.engine.bridge_lock:
+                if cmd_id:
+                    self.engine.bridge_results[cmd_id] = res_obj
+                    ev = self.engine.bridge_waiters.get(cmd_id)
+                    if ev:
+                        ev.set()
+            self._set_cors_headers()
+            self.wfile.write(json.dumps({"success": True}).encode("utf-8"))
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -2420,6 +2486,57 @@ def run_server():
     # 3. Interactive Telegram Poller Thread
     t_bot = threading.Thread(target=telegram_bot_listener, args=(engine,), daemon=True)
     t_bot.start()
+
+    # 4. Optional Windows-to-Railway Cloud Bridge Relay
+    bridge_url = None
+    if "--bridge" in sys.argv:
+        idx = sys.argv.index("--bridge")
+        if idx + 1 < len(sys.argv):
+            bridge_url = sys.argv[idx + 1].rstrip("/")
+    elif os.environ.get("CLOUD_BRIDGE_URL"):
+        bridge_url = os.environ.get("CLOUD_BRIDGE_URL").rstrip("/")
+
+    if bridge_url and sys.platform == "win32":
+        def windows_bridge_worker():
+            import requests
+            print(f"🌉 [Windows MT5 Bridge] Relaying live GTC MT5 <-> {bridge_url}", flush=True)
+            while True:
+                try:
+                    acc = engine.get_account_summary()
+                    pos = engine.get_live_positions()
+                    r = requests.post(
+                        f"{bridge_url}/api/v1/market/mt5/bridge/poll",
+                        json={"account": acc, "positions": pos},
+                        timeout=6
+                    )
+                    if r.status_code == 200:
+                        cmds = r.json().get("commands", [])
+                        for cmd in cmds:
+                            cid = cmd.get("id")
+                            ctype = cmd.get("type")
+                            pl = cmd.get("payload", {})
+                            print(f"⚡ [Bridge Command] Executing {ctype}: {pl}", flush=True)
+                            if ctype == "ORDER":
+                                res = engine.execute_order(
+                                    pl.get("symbol", "EURUSD"),
+                                    pl.get("action", "BUY"),
+                                    float(pl.get("volume", 0.01)),
+                                    pl.get("sl_pips"),
+                                    pl.get("tp_pips")
+                                )
+                            elif ctype == "CLOSE":
+                                res = engine.close_position(int(pl.get("ticket", 0)), pl.get("reason", "Cloud Bridge Close"))
+                            else:
+                                res = {"success": False, "error": f"Unknown command {ctype}"}
+                            requests.post(
+                                f"{bridge_url}/api/v1/market/mt5/bridge/result",
+                                json={"id": cid, "result": res},
+                                timeout=6
+                            )
+                except Exception as ex:
+                    print(f"⚠️ [Bridge Poll Notice] {ex}", flush=True)
+                time.sleep(1.0)
+        threading.Thread(target=windows_bridge_worker, daemon=True).start()
 
     server = HTTPServer(("0.0.0.0", HTTP_PORT), MT5CockpitRequestHandler)
     print("=" * 84, flush=True)

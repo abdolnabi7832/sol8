@@ -276,5 +276,33 @@ public class MarketDataController {
             return ResponseEntity.status(500).body(Map.of("success", false, "error", e.getMessage()));
         }
     }
+
+    @PostMapping("/mt5/bridge/poll")
+    public ResponseEntity<?> bridgePoll(@RequestBody(required = false) Map<String, Object> body) {
+        return proxyPostToDaemon("http://127.0.0.1:8085/api/mt5/bridge/poll", body);
+    }
+
+    @PostMapping("/mt5/bridge/result")
+    public ResponseEntity<?> bridgeResult(@RequestBody(required = false) Map<String, Object> body) {
+        return proxyPostToDaemon("http://127.0.0.1:8085/api/mt5/bridge/result", body);
+    }
+
+    private ResponseEntity<?> proxyPostToDaemon(String targetUrl, Map<String, Object> body) {
+        try {
+            String jsonPayload = objectMapper.writeValueAsString(body != null ? body : Map.of());
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(targetUrl))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return ResponseEntity.status(resp.statusCode())
+                    .header("Content-Type", "application/json")
+                    .body(resp.body());
+        } catch (Exception e) {
+            return ResponseEntity.status(502).body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
 }
 

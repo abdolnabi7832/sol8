@@ -29,8 +29,9 @@ if %errorlevel% neq 0 (
 echo [2/3] Verifying GTC MetaTrader 5 Terminal connection...
 python -c "import MetaTrader5 as mt5; ok = mt5.initialize(path=r'C:\Program Files\GTC Global Trade MetaTrader 5\terminal64.exe'); print('MT5 Terminal Init:', 'SUCCESS' if ok else 'FAILED'); mt5.shutdown()"
 
-echo [3/3] Starting MT5 Cockpit Daemon on Port 8085 with live broker execution...
+echo [3/3] Starting MT5 Cockpit Daemon + Live Railway Cloud Bridge on Port 8085...
+echo [TIP] Make sure "Algo Trading" (Ctrl+E) is GREEN in your GTC MetaTrader 5 window!
 echo.
-python mt5_cockpit_daemon.py
+python mt5_cockpit_daemon.py --bridge https://sol8-production.up.railway.app
 
 pause
