@@ -1306,21 +1306,27 @@ class MT5CockpitEngine:
             return
         try:
             with self.mt5_rpc_lock:
-                self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False")
+                self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False; _tad = bool(_ti.tradeapi_disabled) if _ti else True")
                 trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
-            if not trade_allowed:
+                tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
+            if not trade_allowed or tradeapi_disabled:
                 import subprocess
                 env = os.environ.copy()
                 env["DISPLAY"] = env.get("DISPLAY", ":99")
-                subprocess.run(
-                    ["bash", "-c", "WID=$(xdotool search --onlyvisible --class terminal64 | head -n1); if [ -z \"$WID\" ]; then WID=$(xdotool search --name 'MetaTrader' | head -n1); fi; if [ -n \"$WID\" ]; then xdotool windowactivate --sync $WID key --clearmodifiers ctrl+e; else xdotool key --clearmodifiers ctrl+e; fi"],
-                    env=env, timeout=5, check=False
+                cmd = (
+                    "WID=$(xdotool search --onlyvisible --name '57452535486' | head -n1); "
+                    "if [ -z \"$WID\" ]; then WID=$(xdotool search --onlyvisible --name 'GTC' | head -n1); fi; "
+                    "if [ -z \"$WID\" ]; then WID=$(xdotool search --onlyvisible --class 'terminal64' | head -n1); fi; "
+                    "echo WID=$WID; "
+                    "if [ -n \"$WID\" ]; then xdotool windowfocus $WID 2>/dev/null || true; xdotool key --window $WID --clearmodifiers ctrl+e; else xdotool key --clearmodifiers ctrl+e; fi"
                 )
-                time.sleep(0.8)
+                out = subprocess.run(["bash", "-c", cmd], env=env, timeout=3, capture_output=True, text=True, check=False)
+                time.sleep(0.5)
                 with self.mt5_rpc_lock:
-                    self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False")
+                    self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False; _tad = bool(_ti.tradeapi_disabled) if _ti else True")
                     trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
-                self.log_event(f"⚡ [Wine MT5 AlgoTrading] Auto-toggled Ctrl+E -> trade_allowed={trade_allowed}")
+                    tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
+                self.log_event(f"⚡ [Wine MT5 AlgoTrading] {out.stdout.strip()} -> trade_allowed={trade_allowed}, tradeapi_disabled={tradeapi_disabled}")
         except Exception as e:
             self.log_event(f"⚠️ Wine AlgoTrading toggle notice: {e}")
 
