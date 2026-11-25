@@ -26,6 +26,7 @@ RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         xvfb \
+        xdotool \
         xz-utils \
         tar \
         python3 \

@@ -706,6 +706,7 @@ class MT5CockpitEngine:
                         self.is_cloud_mode = False
                         self.last_connect_error = None
                         self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
+                        self.ensure_wine_algotrading_enabled()
                         return True
         except Exception as e:
             self.last_connect_error = str(e)
@@ -1299,8 +1300,34 @@ class MT5CockpitEngine:
 
         return output
 
+    def ensure_wine_algotrading_enabled(self):
+        """Ensure Algo Trading (Ctrl+E) is enabled in headless Wine MT5 on Linux."""
+        if sys.platform == "win32" or getattr(self, "rpyc_conn", None) is None:
+            return
+        try:
+            with self.mt5_rpc_lock:
+                self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False")
+                trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
+            if not trade_allowed:
+                import subprocess
+                env = os.environ.copy()
+                env["DISPLAY"] = env.get("DISPLAY", ":99")
+                subprocess.run(
+                    ["bash", "-c", "WID=$(xdotool search --onlyvisible --class terminal64 | head -n1); if [ -z \"$WID\" ]; then WID=$(xdotool search --name 'MetaTrader' | head -n1); fi; if [ -n \"$WID\" ]; then xdotool windowactivate --sync $WID key --clearmodifiers ctrl+e; else xdotool key --clearmodifiers ctrl+e; fi"],
+                    env=env, timeout=5, check=False
+                )
+                time.sleep(0.8)
+                with self.mt5_rpc_lock:
+                    self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False")
+                    trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
+                self.log_event(f"⚡ [Wine MT5 AlgoTrading] Auto-toggled Ctrl+E -> trade_allowed={trade_allowed}")
+        except Exception as e:
+            self.log_event(f"⚠️ Wine AlgoTrading toggle notice: {e}")
+
     def _mt5_order_send(self, request: dict):
         """Send an MT5 trade request safely across native Windows or remote RPyC Wine."""
+        if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
+            self.ensure_wine_algotrading_enabled()
         with self.mt5_rpc_lock:
             if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
                 import types
