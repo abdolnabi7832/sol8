@@ -1302,20 +1302,32 @@ class MT5CockpitEngine:
     def _mt5_order_send(self, request: dict):
         """Send an MT5 trade request safely across native Windows or remote RPyC Wine."""
         with self.mt5_rpc_lock:
-            payload = request
             if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
-                payload = self.rpyc_conn.builtins.dict(**request)
-            result = mt5.order_send(payload)
+                import types
+                req_json = json.dumps(request)
+                code = (
+                    "import json, MetaTrader5 as _mt5\n"
+                    f"_req = json.loads({req_json!r})\n"
+                    "_res = _mt5.order_send(_req)\n"
+                    "if _res is None:\n"
+                    "    _out = json.dumps({'__none__': True, 'last_error': list(_mt5.last_error())})\n"
+                    "else:\n"
+                    "    _out = json.dumps({'retcode': int(getattr(_res, 'retcode', 0)), 'order': int(getattr(_res, 'order', 0)), 'deal': int(getattr(_res, 'deal', 0)), 'comment': str(getattr(_res, 'comment', ''))})\n"
+                )
+                self.rpyc_conn.execute(code)
+                out_data = json.loads(self.rpyc_conn.namespace["_out"])
+                if out_data.get("__none__"):
+                    self.last_order_error = f"mt5.order_send returned None (last_error={out_data.get('last_error')})"
+                    self.log_event(f"⚠️ {self.last_order_error}")
+                    return None
+                return types.SimpleNamespace(**out_data)
+
+            result = mt5.order_send(request)
             if result is None:
                 try:
                     last_err = mt5.last_error()
                     self.last_order_error = f"mt5.order_send returned None (last_error={last_err})"
                     self.log_event(f"⚠️ {self.last_order_error}")
-                except Exception:
-                    pass
-            elif rpyc and hasattr(result, '____conn____') and hasattr(rpyc.classic, 'obtain'):
-                try:
-                    result = rpyc.classic.obtain(result)
                 except Exception:
                     pass
             return result
