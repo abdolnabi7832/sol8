@@ -291,10 +291,22 @@ def handle_symbol_info(symbol: str):
         mt5.symbol_select(sym, True)
         s_info = mt5.symbol_info(sym)
         tick = mt5.symbol_info_tick(sym)
+    info_dict = _to_json_safe(s_info)
+    tick_dict = _to_json_safe(tick)
+    spread_pips = None
+    if tick_dict and info_dict:
+        digits = int(info_dict.get("digits") or (3 if "JPY" in sym else 5))
+        point = float(info_dict.get("point") or (0.001 if "JPY" in sym else 0.00001))
+        pip_mult = 10.0 if digits in (3, 5) else 1.0
+        bid = float(tick_dict.get("bid") or 0.0)
+        ask = float(tick_dict.get("ask") or 0.0)
+        if bid > 0 and ask >= bid and point > 0:
+            spread_pips = round((ask - bid) / (point * pip_mult), 2)
     return {
         "connected": True,
-        "symbol_info": _to_json_safe(s_info),
-        "tick": _to_json_safe(tick),
+        "symbol_info": info_dict,
+        "tick": tick_dict,
+        "spread_pips": spread_pips,
     }
 
 
@@ -562,12 +574,21 @@ def handle_modify_sltp(payload: dict):
 
 class BridgeHandler(BaseHTTPRequestHandler):
     def _send_json(self, data: dict, status: int = 200):
-        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except (ConnectionResetError, BrokenPipeError, ConnectionAbortedError, OSError):
+            pass
+
+    def finish(self):
+        try:
+            super().finish()
+        except (ConnectionResetError, BrokenPipeError, ConnectionAbortedError, OSError):
+            pass
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -646,7 +667,15 @@ def main():
         )
 
     threading.Thread(target=_connection_supervisor, daemon=True).start()
-    server = ThreadingHTTPServer((HOST, PORT), BridgeHandler)
+
+    class QuietThreadingHTTPServer(ThreadingHTTPServer):
+        def handle_error(self, request, client_address):
+            ex_type, _, _ = sys.exc_info()
+            if ex_type in (ConnectionResetError, BrokenPipeError, ConnectionAbortedError):
+                return
+            super().handle_error(request, client_address)
+
+    server = QuietThreadingHTTPServer((HOST, PORT), BridgeHandler)
     server.daemon_threads = True
     print(f"[WineBridge] Native Wine MT5 HTTP JSON Bridge listening on http://{HOST}:{PORT}", flush=True)
     server.serve_forever()

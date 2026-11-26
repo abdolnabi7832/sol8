@@ -200,6 +200,24 @@ public class PortfolioTradingController {
 
     @PostMapping("/market-structure")
     public ResponseEntity<MarketStructureEntity> updateMarketStructure(@RequestBody MarketStructureEntity structure) {
+        MarketStructureEntity saved = upsertMarketStructure(structure);
+        syncService.syncAllFiles();
+        return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/market-structure/batch")
+    public ResponseEntity<List<MarketStructureEntity>> updateMarketStructureBatch(@RequestBody List<MarketStructureEntity> structures) {
+        List<MarketStructureEntity> savedList = new ArrayList<>();
+        if (structures != null) {
+            for (MarketStructureEntity s : structures) {
+                savedList.add(upsertMarketStructure(s));
+            }
+            syncService.syncAllFiles();
+        }
+        return ResponseEntity.ok(savedList);
+    }
+
+    private MarketStructureEntity upsertMarketStructure(MarketStructureEntity structure) {
         Optional<MarketStructureEntity> opt = marketStructureRepository
                 .findByPairAndTimeframe(structure.getPair(), structure.getTimeframe());
         MarketStructureEntity target = opt.orElse(structure);
@@ -210,9 +228,7 @@ public class PortfolioTradingController {
         if (structure.getKeyResistanceLevel() != null) target.setKeyResistanceLevel(structure.getKeyResistanceLevel());
         if (structure.getCurrentPrice() != null) target.setCurrentPrice(structure.getCurrentPrice());
 
-        MarketStructureEntity saved = marketStructureRepository.save(target);
-        syncService.syncAllFiles();
-        return ResponseEntity.ok(saved);
+        return marketStructureRepository.save(target);
     }
 
     // --- USER SETTINGS ---

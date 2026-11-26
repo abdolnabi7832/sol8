@@ -287,6 +287,33 @@ public class MarketDataController {
         return proxyPostToDaemon("http://127.0.0.1:8085/api/mt5/bridge/result", body);
     }
 
+    @GetMapping("/mt5/autopilot")
+    public ResponseEntity<?> getAutopilotStatus() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://127.0.0.1:8085/api/mt5/autopilot"))
+                    .timeout(Duration.ofSeconds(6))
+                    .GET()
+                    .build();
+            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            return ResponseEntity.status(resp.statusCode())
+                    .header("Content-Type", "application/json")
+                    .body(resp.body());
+        } catch (Exception e) {
+            return ResponseEntity.status(502).body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/mt5/autopilot/toggle")
+    public ResponseEntity<?> toggleAutopilot() {
+        return proxyPostToDaemon("http://127.0.0.1:8085/api/mt5/toggle-autopilot", Map.of());
+    }
+
+    @PostMapping("/mt5/autopilot/scan")
+    public ResponseEntity<?> scanAutopilotNow() {
+        return proxyPostToDaemon("http://127.0.0.1:8085/api/mt5/autopilot/scan", Map.of());
+    }
+
     private ResponseEntity<?> proxyPostToDaemon(String targetUrl, Map<String, Object> body) {
         try {
             String jsonPayload = objectMapper.writeValueAsString(body != null ? body : Map.of());

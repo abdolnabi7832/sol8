@@ -522,6 +522,8 @@ class MT5CockpitEngine:
         self.tracked_positions = self.load_tracked_positions()
         self.event_logs = []
         self.cached_candles = {}
+        from autonomous_trader import AutonomousTrader
+        self.autonomous_trader = AutonomousTrader(self, LOGS_DIR)
         self.log_event("🚀 MT5 Cockpit Engine initialized.")
 
     def load_tracked_positions(self) -> dict:
@@ -1430,6 +1432,12 @@ class MT5CockpitEngine:
                 with open(CANDLES_FILE, "w", encoding="utf-8") as f:
                     json.dump(output, f, indent=2)
                 self.log_event(f"📈 Candlestick Cache synchronized: {len(output['candles'])}/28 pairs updated.")
+                try:
+                    synced_ms = self.autonomous_trader.sync_market_structure(output["candles"])
+                    if synced_ms > 0:
+                        self.log_event(f"🧭 Live Market Structure synced to Java H2 ({synced_ms}/28 pairs).")
+                except Exception as ms_ex:
+                    print(f"[MarketStructure Hook Error] {ms_ex}", flush=True)
         except Exception as e:
             print(f"[Candle Save Error] {e}", flush=True)
 
@@ -1611,6 +1619,8 @@ class MT5CockpitEngine:
                 return {"success": False, "error": err_text, "mode": "DISCONNECTED", "detail": self.last_order_error}
 
         # Generate chart photo & dispatch Telegram Photo + Message asynchronously in background
+        disp_sl_pips = round(sl_pips, 1) if (sl_pips and sl_pips > 0) else anti_hunt["sl_pips"]
+        disp_tp_pips = round(tp_pips, 1) if (tp_pips and tp_pips > 0) else anti_hunt["tp1_pips"]
         chart_path = os.path.join(LOGS_DIR, f"chart_{symbol}_{ticket}.png")
         caption = (
             f"⚡ <b>[پوزیشن جدید MT5 با حد ضرر ضد هانت]</b>\n"
@@ -1618,14 +1628,13 @@ class MT5CockpitEngine:
             f"📈 <b>نماد:</b> <code>{symbol}</code>\n"
             f"🎯 <b>جهت:</b> <b>{action.upper()}</b> | <b>حجم:</b> <code>{volume} Lot</code>\n"
             f"💵 <b>قیمت ورود:</b> <code>{price:.{digits}f}</code>\n"
-            f"🛡️ <b>حد ضرر داینامیک ضد هانت (SL):</b> <code>{sl:.{digits}f}</code> (-{anti_hunt['sl_pips']} pips)\n"
-            f"    ↳ <i>محافظت شده در برابر شکار استاپ بروکر و بانک‌ها</i>\n"
-            f"🎯 <b>حد سود اول (TP1):</b> <code>{tp:.{digits}f}</code> (+{anti_hunt['tp1_pips']} pips)\n"
-            f"🚀 <b>حد سود دوم (TP2):</b> <code>{anti_hunt['tp2']:.{digits}f}</code> (+{anti_hunt['tp2_pips']} pips)\n"
+            f"🛡️ <b>حد ضرر داینامیک ضد هانت (SL):</b> <code>{sl:.{digits}f}</code> (-{disp_sl_pips} pips)\n"
+            f"    ↳ <i>محافظت شده در برابر شکار استاپ بروکر</i>\n"
+            f"🎯 <b>حد سود هدف (TP):</b> <code>{tp:.{digits}f}</code> (+{disp_tp_pips} pips)\n"
             f"🎫 <b>سفارش:</b> <code>#{ticket}</code> ({exec_mode})\n"
-            f"💼 <b>حساب:</b> <code>#{self.creds.get('login')}</code> (GTC Global Trade $100)\n"
+            f"💼 <b>حساب:</b> <code>#{self.creds.get('login')}</code> (GTC Global Trade)\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🔒 <i>ریسک‌فری خودکار پس از رسیدن به +25 پیپ فعال است.</i>"
+            f"🔒 <i>ریسک‌فری خودکار پس از رسیدن به +1.4R فعال است.</i>"
         )
 
         def _async_notify():
@@ -1974,13 +1983,20 @@ class MT5CockpitEngine:
                         if old_pos:
                             self.handle_closed_trade_alert(t, old_pos, old_pos.get("current_price", 0.0), "پایان معامله در بازار (TP/SL/Manual)")
 
-                # 3. Dynamic Breakeven & Anti-Hunt Trailing Check
+                # 3. Dynamic R-Multiple Breakeven (+1.4R, avoids premature noise stop-outs)
                 for t, p_data in current_tickets.items():
-                    pips = p_data.get("pips_profit", 0.0)
+                    pips = float(p_data.get("pips_profit", 0.0))
                     state = self.managed_positions_state.get(t, {'be_set': False, 'tp1_banked': False})
-                    # If profit >= 25 pips and breakeven not yet set: lock it!
-                    if pips >= 25.0 and not state.get('be_set'):
+                    meta = self.autonomous_trader.state.get("position_meta", {}).get(str(t))
+                    be_threshold = max(35.0, float(meta.get("sl_pips", 70.0)) * 1.4) if meta else 75.0
+                    if pips >= be_threshold and not state.get('be_set'):
                         self.save_profit_and_breakeven(t)
+
+                # 4. Autonomous 7-Gate Institutional Auto-Trader Scan (throttled ~60s internally)
+                try:
+                    self.autonomous_trader.evaluate_and_trade_once()
+                except Exception as auto_ex:
+                    print(f"[Autopilot Loop Exception] {auto_ex}", flush=True)
 
             except Exception as e:
                 print(f"[Loop Exception] {e}", flush=True)
@@ -2072,21 +2088,36 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
             )
             dispatch_telegram_photo(chart_file, cap, reply_markup=TELEGRAM_DRAWER_KEYBOARD, target_chat_id=sender_chat)
 
-        # 4. Top Signals Matrix
+        # 4. Top Signals Matrix (LIVE from Java 6-Pillar Quant Engine + Autopilot)
         elif lower_act.startswith("/signals") or "signal" in lower_act or "سیگنال" in act or act == "btn_signals":
+            top_lines = []
+            try:
+                bs = requests.get("http://127.0.0.1:8080/api/v1/bootstrap", timeout=5).json()
+                sigs = sorted(bs.get("pairSignals") or [], key=lambda s: abs(float(s.get("deltaScore", 0))), reverse=True)
+                medals = ["🥇", "🥈", "🥉"]
+                for idx, s in enumerate(sigs[:4]):
+                    m = medals[idx] if idx < 3 else "📌"
+                    p = s.get("pair", "")
+                    d_sc = float(s.get("deltaScore", 0))
+                    bias = s.get("signalGrade") or ("BUY" if d_sc >= 0 else "SELL")
+                    spot = s.get("spotPrice", "-")
+                    gate = "✅ 7/7" if s.get("allSevenGatesPassed") else ("🔒 NEWS" if s.get("isNewsLocked") else "⚠️ GATED")
+                    top_lines.append(
+                        f"{m} <b>{p}:</b> <b>{bias}</b> (ΔScore: <code>{d_sc:+.2f}</code> | {gate})\n"
+                        f"    ↳ Spot: <code>{spot}</code> | SL: <code>{s.get('suggestedSlPips', '-')}p</code> | Conf: <code>{s.get('confidencePercent', 0)}%</code>"
+                    )
+            except Exception:
+                pass
+            if not top_lines:
+                top_lines.append("⏳ <i>در حال دریافت سیگنال‌های زنده از موتور جاوا...</i>")
+            ast = engine.autonomous_trader.last_status
             sig_msg = (
-                f"📈 <b>[برترین سیگنال‌های نهادی ماتریس ۲۸ جفت ارز]</b>\n"
+                f"📈 <b>[سیگنال‌های زنده ماکرو و اتو-تریدر ۲۸ جفت ارز]</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🥇 <b>EURUSD:</b> <b>خرید قوی (ULTRA-SAFE BUY)</b>\n"
-                f"    ↳ ورود بهینه OTE: <code>1.05420</code> | حد ضرر ضد هانت: <code>1.04880</code>\n"
-                f"    ↳ تارگت سود TP1: <code>1.06100</code> | تارگت دونده TP2: <code>1.06850</code>\n"
-                f"    ↳ نرخ برد تایید شده: <b>89.3%</b> (PF: 3.92)\n\n"
-                f"🥈 <b>GBPUSD:</b> <b>خرید (BULLISH SWEEP)</b>\n"
-                f"    ↳ ورود: <code>1.29400</code> | تارگت: <code>1.30600</code> | حد ضرر: <code>1.28850</code>\n\n"
-                f"🥉 <b>USDJPY:</b> <b>فروش نهادی (MACRO REVERSAL)</b>\n"
-                f"    ↳ ورود: <code>154.20</code> | حد ضرر ضد هانت: <code>154.85</code> | تارگت: <code>152.90</code>\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚡ <i>تمامی سیگنال‌ها دارای تاییدیه ۷ گیت نقدینگی و واگرایی ماکرو هستند.</i>"
+                + "\n\n".join(top_lines) +
+                f"\n━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 <b>وضعیت اتو-تریدر:</b> <code>{'ACTIVE ✅' if engine.autopilot_enabled else 'PAUSED ⏸️'}</code> | پنجره: <code>{ast.get('market_window', '-')}</code>\n"
+                f"⚡ <i>موتور واقعی Dual Institutional (بک‌تست ۲۰۲۰-۲۰۲۶: OOS PF=1.66)</i>"
             )
             dispatch_telegram_alert(sig_msg, reply_markup=TELEGRAM_DRAWER_KEYBOARD, target_chat_id=sender_chat)
 
@@ -2108,21 +2139,32 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
             )
             dispatch_telegram_alert(risk_msg, reply_markup=TELEGRAM_DRAWER_KEYBOARD, target_chat_id=sender_chat)
 
-        # 6. Real-time Market Rates
+        # 6. Real-time Market Rates (LIVE from MT5 Broker GTC)
         elif lower_act.startswith("/rates") or "rate" in lower_act or "نرخ" in act or act == "btn_rates":
+            live_rates = {}
+            updated_at = "-"
+            if os.path.exists(CANDLES_FILE):
+                try:
+                    with open(CANDLES_FILE, "r", encoding="utf-8") as cf:
+                        cdata = json.load(cf)
+                        live_rates = cdata.get("rates") or {}
+                        updated_at = str(cdata.get("updated_at", "-"))[:19].replace("T", " ")
+                except Exception:
+                    pass
+            def _r(p): return live_rates.get(p, "-")
             rates_msg = (
-                f"⚡ <b>[استعلام نرخ لحظه‌ای بازار ۲۸ جفت ارز]</b>\n"
+                f"⚡ <b>[نرخ زنده لحظه‌ای بروکر GTC MT5]</b>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"💶 <b>EURUSD:</b> <code>1.05420</code> (Spread: 0.8p)\n"
-                f"💷 <b>GBPUSD:</b> <code>1.29400</code> (Spread: 1.1p)\n"
-                f"💴 <b>USDJPY:</b> <code>154.200</code> (Spread: 0.9p)\n"
-                f"🇨🇦 <b>USDCAD:</b> <code>1.39550</code> (Spread: 1.2p)\n"
-                f"🇦🇺 <b>AUDUSD:</b> <code>0.65200</code> (Spread: 1.0p)\n"
-                f"🇳🇿 <b>NZDUSD:</b> <code>0.58900</code> (Spread: 1.3p)\n"
-                f"🇨🇭 <b>USDCHF:</b> <code>0.88450</code> (Spread: 1.2p)\n"
+                f"💶 <b>EURUSD:</b> <code>{_r('EURUSD')}</code>\n"
+                f"💷 <b>GBPUSD:</b> <code>{_r('GBPUSD')}</code>\n"
+                f"💴 <b>USDJPY:</b> <code>{_r('USDJPY')}</code>\n"
+                f"🇨🇦 <b>USDCAD:</b> <code>{_r('USDCAD')}</code>\n"
+                f"🇦🇺 <b>AUDUSD:</b> <code>{_r('AUDUSD')}</code>\n"
+                f"🇳🇿 <b>NZDUSD:</b> <code>{_r('NZDUSD')}</code>\n"
+                f"🇨🇭 <b>USDCHF:</b> <code>{_r('USDCHF')}</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⏱️ <i>منبع: سرور لایو متاتریدر ۵ بروکر GTC</i>\n"
-                f"📡 <i>آخرین به‌روزرسانی: {datetime.datetime.now().strftime('%H:%M:%S')}</i>"
+                f"⏱️ <i>منبع: سرور لایو متاتریدر ۵ بروکر GTC (#57452535486)</i>\n"
+                f"📡 <i>آخرین سنک: {updated_at}</i>"
             )
             dispatch_telegram_alert(rates_msg, reply_markup=TELEGRAM_DRAWER_KEYBOARD, target_chat_id=sender_chat)
 
@@ -2294,6 +2336,22 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             self._set_cors_headers()
             self.wfile.write(json.dumps(self.engine.event_logs[-50:]).encode("utf-8"))
 
+        elif path == "/api/mt5/autopilot":
+            payload = {
+                "autopilot_enabled": self.engine.autopilot_enabled,
+                "status": self.engine.autonomous_trader.last_status,
+                "state": {
+                    "traded_bars_count": len(self.engine.autonomous_trader.state.get("traded_bars", {})),
+                    "cooldown_until": self.engine.autonomous_trader.state.get("cooldown_until", {}),
+                    "daily_anchor": self.engine.autonomous_trader.state.get("daily_anchor", {}),
+                    "high_water_equity": self.engine.autonomous_trader.state.get("high_water_equity"),
+                    "trades_opened_total": self.engine.autonomous_trader.state.get("trades_opened_total", 0),
+                    "recent_decisions": self.engine.autonomous_trader.state.get("recent_decisions", [])[-15:],
+                },
+            }
+            self._set_cors_headers()
+            self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+
         elif path == "/api/mt5/debug":
             import subprocess
             ps_out = ""
@@ -2326,6 +2384,7 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                 "last_connect_error": self.engine.last_connect_error,
                 "last_order_error": getattr(self.engine, "last_order_error", None),
                 "last_order_result": getattr(self.engine, "last_order_result", None),
+                "autopilot": getattr(self.engine, "autonomous_trader", None).last_status if hasattr(self.engine, "autonomous_trader") else None,
                 "events": self.engine.event_logs[-20:],
                 "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5_wine_bridge", "xvfb", "openbox", "python", "java"))],
                 "mt5_terminal_log": term_log,
@@ -2514,9 +2573,15 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
 
         elif path == "/api/mt5/toggle-autopilot":
             self.engine.autopilot_enabled = not self.engine.autopilot_enabled
+            self.engine.autonomous_trader.last_status["enabled"] = bool(self.engine.autopilot_enabled)
             self.engine.log_event(f"⚙️ Autopilot status changed to: {'ON' if self.engine.autopilot_enabled else 'PAUSED'}")
             self._set_cors_headers()
             self.wfile.write(json.dumps({"autopilot_enabled": self.engine.autopilot_enabled}).encode("utf-8"))
+
+        elif path == "/api/mt5/autopilot/scan":
+            st = self.engine.autonomous_trader.evaluate_and_trade_once(force=True)
+            self._set_cors_headers()
+            self.wfile.write(json.dumps({"success": True, "status": st}, ensure_ascii=False).encode("utf-8"))
 
         elif path == "/api/mt5/bridge/poll":
             with self.engine.bridge_lock:
@@ -2563,14 +2628,14 @@ def run_server():
     t_mgmt = threading.Thread(target=engine.position_management_loop, daemon=True)
     t_mgmt.start()
 
-    # 2. Candlestick Synchronizer Thread
+    # 2. Candlestick & Market Structure Synchronizer Thread (250 D1 bars for EMA200)
     def sync_candles_worker():
         time.sleep(2)
-        engine.sync_all_28_pairs_candles(60)
+        engine.sync_all_28_pairs_candles(250)
         while True:
             time.sleep(60)
             try:
-                engine.sync_all_28_pairs_candles(60)
+                engine.sync_all_28_pairs_candles(250)
             except Exception:
                 pass
     threading.Thread(target=sync_candles_worker, daemon=True).start()

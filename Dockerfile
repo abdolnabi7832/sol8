@@ -89,8 +89,10 @@ RUN mkdir -p /app/mt5 && \
     rm -rf /app/mt5/config && \
     cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
 
-# 6. Copy Data, Bridges, Daemon, Launcher & Spring Boot JAR
+# 6. Copy Data, Bridges, Daemon, Backtester, Auto-Trader, Launcher & Spring Boot JAR
 COPY data/ /app/data/
+COPY backtest_engine.py /app/backtest_engine.py
+COPY autonomous_trader.py /app/autonomous_trader.py
 COPY mt5_wine_bridge.py /app/mt5_wine_bridge.py
 COPY mt5_cockpit_daemon.py /app/mt5_cockpit_daemon.py
 COPY start.sh /app/start.sh

@@ -151,7 +151,8 @@ public class PairSignalMatrixEngine {
 
         Map<String, CurrencyMacroScore> macroScores = new HashMap<>();
         for (String ccy : List.of("EUR", "GBP", "AUD", "NZD", "USD", "CAD", "CHF", "JPY")) {
-            macroScores.put(ccy, macroScorer.calculateCurrencyScore(ccy));
+            macroScores.put(ccy, macroScorer.calculateCurrencyScore(
+                    ccy, nowUtc, CurrencySpecificProfile.ScoringMode.AUTO, Map.of()));
         }
 
         List<ActiveTradeEntity> openTrades = activeTradeRepository.findByStatus("OPEN");
