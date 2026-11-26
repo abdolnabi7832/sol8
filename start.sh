@@ -94,9 +94,15 @@ if [ -n "$WINE_BIN" ]; then
           ) &
       }
 
-      WINE_PYW="/app/winepy/pythonw.exe"
+      # Native UCRT DLLs (ucrtbase.crealf for NumPy/MetaTrader5) stay strictly scoped to /app/winepy/
+      # so terminal64.exe runs cleanly on Wine 9.0 built-in system32 without UCRT conflicts.
+      if [ -d /app/mt5_runtime_dlls ]; then
+          cp -f /app/mt5_runtime_dlls/*.dll /app/winepy/ 2>/dev/null || true
+      fi
+
       WINE_PY="/app/winepy/python.exe"
       [ ! -f "$WINE_PY" ] && WINE_PY="python"
+      WINE_PYW="/app/winepy/pythonw.exe"
       BRIDGE_TRY=0
 
       launch_bridge() {
@@ -107,12 +113,15 @@ if [ -n "$WINE_BIN" ]; then
               cd /app || exit 1
               export MT5_BRIDGE_LOG="Z:\\tmp\\mt5_wine_bridge_py.log"
               export PYTHONIOENCODING="utf-8"
-              if [ "$mode" -eq 0 ] && [ -f "$WINE_PYW" ]; then
-                  WINEDEBUG="err+all,-ole,-quartz" "$WINE_BIN" "$WINE_PYW" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" </dev/null >> /tmp/mt5_wine_bridge.log 2>&1
-              elif [ "$mode" -eq 1 ] && command -v script >/dev/null 2>&1; then
-                  PYTHONLEGACYWINDOWSSTDIO=1 WINEDEBUG="-all" script -q -c "\"$WINE_BIN\" \"$WINE_PY\" /app/mt5_wine_bridge.py --port ${MT5_BRIDGE_PORT}" /dev/null >> /tmp/mt5_wine_bridge.log 2>&1
+              export PYTHONUNBUFFERED=1
+              export PYTHONLEGACYWINDOWSSTDIO=1
+              export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,api-ms-win-crt-stdio-l1-1-0,api-ms-win-crt-convert-l1-1-0,api-ms-win-crt-heap-l1-1-0,api-ms-win-crt-string-l1-1-0,api-ms-win-crt-time-l1-1-0,api-ms-win-crt-locale-l1-1-0,api-ms-win-crt-environment-l1-1-0,api-ms-win-crt-filesystem-l1-1-0,api-ms-win-crt-utility-l1-1-0,api-ms-win-crt-conio-l1-1-0,api-ms-win-crt-process-l1-1-0,api-ms-win-crt-private-l1-1-0,api-ms-win-crt-multibyte-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
+              if [ "$mode" -eq 0 ] && command -v script >/dev/null 2>&1; then
+                  WINEDEBUG="err+all,-ole,-quartz" script -q -c "\"$WINE_BIN\" \"$WINE_PY\" /app/mt5_wine_bridge.py --port ${MT5_BRIDGE_PORT}" /dev/null >> /tmp/mt5_wine_bridge.log 2>&1
+              elif [ "$mode" -eq 1 ]; then
+                  WINEDEBUG="err+all,-ole,-quartz" python3 -u -c 'import subprocess, sys; p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE); sys.exit(p.wait())' "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
               else
-                  PYTHONLEGACYWINDOWSSTDIO=1 WINEDEBUG="-all" python3 -u -c 'import subprocess, sys; p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE); sys.exit(p.wait())' "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
+                  WINEDEBUG="err+all,-ole,-quartz" "$WINE_BIN" "$WINE_PYW" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" </dev/null >> /tmp/mt5_wine_bridge.log 2>&1
               fi
               echo "⚠️ [Exit] mt5_wine_bridge.py (mode=${mode}) exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_wine_bridge.log
           ) &
