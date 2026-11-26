@@ -9,7 +9,7 @@ export DISPLAY=:99
 export WINEDEBUG=-all
 export WINEPREFIX=${WINEPREFIX:-/root/.wine}
 export WINEARCH=win64
-export WINEDLLOVERRIDES="mscoree=d;mshtml=d"
+export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
 export PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
 export MT5_LOGIN="${MT5_LOGIN:-57452535486}"
@@ -71,6 +71,12 @@ if [ -n "$WINE_BIN" ]; then
           sleep 5
       fi
 
+      if [ -d /app/mt5_runtime_dlls ]; then
+          cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
+          mkdir -p /root/.wine/drive_c/windows/system32
+          cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true
+      fi
+
       $WINE_BIN reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f >/dev/null 2>&1 || true
       $WINE_BIN reg add "HKEY_CURRENT_USER\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
       $WINE_BIN reg add "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
@@ -80,13 +86,11 @@ if [ -n "$WINE_BIN" ]; then
       $WINE_BIN terminal64.exe /portable /config:start.ini >> /tmp/mt5_terminal.log 2>&1 &
       sleep 12
 
-      echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT}..."
+      WINE_PY="/app/winepy/python.exe"
+      [ ! -f "$WINE_PY" ] && WINE_PY="python"
+
+      echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..."
       cd /app
-      if [ -f "/root/.wine/drive_c/Program Files/Python312/python.exe" ]; then
-        WINE_PY='C:\Program Files\Python312\python.exe'
-      else
-        WINE_PY="python"
-      fi
       $WINE_BIN "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1 &
       sleep 4
 

@@ -1,7 +1,7 @@
 # ==============================================================================
 # FOREX INTELLIGENCE SUITE v7.0 — ENTERPRISE CLOUD & RAILWAY DOCKERFILE
-# Multi-Stage Build: Spring Boot 3.3.5 + WineHQ Stable + Windows Python in Wine
-# + Xvfb + Openbox + MetaTrader 5 Portable
+# Multi-Stage Build: Spring Boot 3.3.5 + WineHQ Stable + Embeddable Win64 Python
+# + MetaTrader 5 Package (native Wine HTTP bridge, zero RPyC/MSI installer)
 # ==============================================================================
 
 FROM eclipse-temurin:21-jdk-jammy AS java-builder
@@ -20,7 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WINEARCH=win64 \
     DISPLAY=:99 \
     WINEDEBUG=-all \
-    WINEDLLOVERRIDES="mscoree=d;mshtml=d" \
+    WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b" \
     PYTHON_VERSION=3.12.8 \
     PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
@@ -32,7 +32,6 @@ RUN dpkg --add-architecture i386 && \
         xauth \
         openbox \
         xdotool \
-        cabextract \
         unzip \
         xz-utils \
         tar \
@@ -42,7 +41,6 @@ RUN dpkg --add-architecture i386 && \
         fonts-dejavu-core \
         fonts-liberation \
         curl \
-        wget \
         gnupg2 \
         ca-certificates \
         procps && \
@@ -51,43 +49,45 @@ RUN dpkg --add-architecture i386 && \
     curl -fsSL https://dl.winehq.org/wine-builds/ubuntu/dists/jammy/winehq-jammy.sources -o /etc/apt/sources.list.d/winehq-jammy.sources && \
     apt-get update && \
     apt-get install -y --install-recommends winehq-stable && \
-    curl -fsSL -o /usr/local/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && \
-    chmod +x /usr/local/bin/winetricks && \
     rm -rf /var/lib/apt/lists/*
 
-# 2. Initialize Wine64 Prefix + VC++ Runtime (vcrun2022) + Windows Python 3.12 + MetaTrader5 Package
-# Pre-building inside Docker layers guarantees fast deterministic boots on Railway.
+# 2. Install Embeddable Windows Python 3.12 + Official MetaTrader5 & NumPy Wheels into /app/winepy
+# Avoids brittle Wine MSI/winetricks installers while running native win_amd64 MetaTrader5 IPC.
+COPY mt5_runtime_dlls/ /app/mt5_runtime_dlls/
+RUN mkdir -p /app/winepy/Lib/site-packages && \
+    curl -fsSL -o /tmp/python-embed.zip "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-embed-amd64.zip" && \
+    unzip -q /tmp/python-embed.zip -d /app/winepy && \
+    rm -f /tmp/python-embed.zip && \
+    sed -i 's/^#import site/import site/' /app/winepy/python312._pth && \
+    printf "Lib\\\\site-packages\r\nZ:\\\\app\r\n" >> /app/winepy/python312._pth && \
+    pip3 install --no-cache-dir --no-deps --platform win_amd64 --python-version 3.12 --only-binary=:all: \
+        --target /app/winepy/Lib/site-packages "MetaTrader5>=5.0.45" "numpy<2.3" && \
+    cp -f /app/mt5_runtime_dlls/*.dll /app/winepy/ 2>/dev/null || true
+
+# 3. Pre-initialize Wine64 Prefix + Native UCRT DLLs + Build-Time Verification of MetaTrader5 Import in Wine
 RUN WINE_CMD="$(command -v wine || command -v wine64)" && \
     xvfb-run -a "$WINE_CMD" wineboot --init && wineserver -w && \
+    mkdir -p /root/.wine/drive_c/windows/system32 && \
+    cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true && \
     "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f && \
     "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f && \
     "$WINE_CMD" reg add "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug" /v Auto /t REG_SZ /d "0" /f && \
-    (xvfb-run -a winetricks -q --unattended vcrun2022 || xvfb-run -a winetricks -q --unattended vcrun2019 || true) && \
-    wineserver -w && \
-    curl -fsSL -o /tmp/python-setup.exe "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-amd64.exe" && \
-    xvfb-run -a "$WINE_CMD" /tmp/python-setup.exe /quiet InstallAllUsers=1 PrependPath=1 Include_doc=0 Include_tcltk=0 Include_test=0 && \
-    wineserver -w && \
-    rm -f /tmp/python-setup.exe && \
-    if [ -f "/root/.wine/drive_c/Program Files/Python312/python.exe" ]; then WINE_PY='C:\Program Files\Python312\python.exe'; else WINE_PY="python"; fi && \
-    xvfb-run -a "$WINE_CMD" "$WINE_PY" -m pip install --no-cache-dir --upgrade pip MetaTrader5 && \
-    wineserver -w && \
-    xvfb-run -a "$WINE_CMD" "$WINE_PY" -c "import MetaTrader5 as mt5; print('WINE_MT5_READY', mt5.__version__)" && \
+    xvfb-run -a "$WINE_CMD" /app/winepy/python.exe -c "import MetaTrader5 as mt5; print('WINE_MT5_READY', mt5.__version__)" && \
     wineserver -w
 
-# 3. Install Linux Python requirements
+# 4. Install Linux Python requirements
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir -r /app/requirements.txt || true
 
-# 4. Pre-extract MT5 Portable Bundle & native runtime DLLs
+# 5. Pre-extract MT5 Portable Bundle & native runtime DLLs
 COPY mt5_bundle.tar.xz /app/mt5_bundle.tar.xz
-COPY mt5_runtime_dlls/ /app/mt5_runtime_dlls/
 RUN mkdir -p /app/mt5 && \
     tar -xf /app/mt5_bundle.tar.xz -C /app/mt5 && \
     rm -f /app/mt5_bundle.tar.xz && \
     rm -rf /app/mt5/config && \
-    cp -n /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
+    cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
 
-# 5. Copy Data, Bridges, Daemon, Launcher & Spring Boot JAR
+# 6. Copy Data, Bridges, Daemon, Launcher & Spring Boot JAR
 COPY data/ /app/data/
 COPY mt5_wine_bridge.py /app/mt5_wine_bridge.py
 COPY mt5_cockpit_daemon.py /app/mt5_cockpit_daemon.py
