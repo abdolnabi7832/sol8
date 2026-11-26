@@ -66,19 +66,26 @@ def _to_json_safe(obj):
     return str(obj)
 
 
+MT5_TERMINAL_PATH = os.environ.get("MT5_TERMINAL_PATH", r"Z:\app\mt5\terminal64.exe")
+
+
 def _ensure_connected_locked(login=None, password=None, server=None):
-    """Attach to the already-running MT5 terminal under _mt5_lock."""
+    """Attach to the already-running portable MT5 terminal under _mt5_lock."""
     ti = mt5.terminal_info()
     acc = mt5.account_info()
     if ti is not None and acc is not None and getattr(acc, "login", 0):
         return True, ti, acc
 
-    # Attach without credentials first (terminal64 launches with /config:start.ini)
+    # Attach to running portable terminal first (no registry required if IPC pipe exists)
     ok = bool(mt5.initialize())
     if not ok:
         mt5.shutdown()
-        time.sleep(0.2)
-        ok = bool(mt5.initialize())
+        time.sleep(0.25)
+        # Fallback: pass explicit Wine Z:\app\mt5\terminal64.exe path + portable=True
+        if os.path.exists(MT5_TERMINAL_PATH):
+            ok = bool(mt5.initialize(path=MT5_TERMINAL_PATH, portable=True, timeout=20000))
+        else:
+            ok = bool(mt5.initialize())
 
     ti = mt5.terminal_info() if ok else None
     acc = mt5.account_info() if ok else None

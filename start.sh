@@ -44,13 +44,18 @@ write_mt5_configs() {
     printf "[Common]\r\nLogin=%s\r\nPassword=%s\r\nServer=%s\r\nNewsEnable=0\r\nEventsEnable=0\r\nPortable=1\r\n[Charts]\r\nMaxBars=100000\r\nPrintColor=0\r\n[Experts]\r\nAllowDllImport=1\r\nAllowLiveTrading=1\r\nEnabled=1\r\nAccount=0\r\nProfile=0\r\nChart=0\r\nApi=0\r\nWebRequest=0\r\n" \
         "$MT5_LOGIN" "$MT5_PASSWORD" "$MT5_SERVER" > /app/mt5/Config/common.ini
 
-    printf "[Common]\r\nLogin=%s\r\nPassword=%s\r\nServer=%s\r\nNewsEnable=0\r\nEventsEnable=0\r\nPortable=1\r\n[Charts]\r\nMaxBars=100000\r\nPrintColor=0\r\n[Experts]\r\nEnabled=1\r\nAllowLiveTrading=1\r\nAllowDllImport=1\r\nAccount=0\r\nProfile=0\r\nChart=0\r\nApi=0\r\n[StartUp]\r\nShutdownTerminal=No\r\n" \
-        "$MT5_LOGIN" "$MT5_PASSWORD" "$MT5_SERVER" > /app/mt5/start.ini
+    printf "[Common]\r\nLogin=%s\r\nPassword=%s\r\nServer=%s\r\nNewsEnable=0\r\nEventsEnable=0\r\nPortable=1\r\n[Charts]\r\nMaxBars=100000\r\nPrintColor=0\r\n[Experts]\r\nEnabled=1\r\nAllowLiveTrading=1\r\nAllowDllImport=1\r\nAccount=0\r\nProfile=0\r\nChart=0\r\nApi=0\r\n[StartUp]\r\nLogin=%s\r\nPassword=%s\r\nServer=%s\r\nAutoConfiguration=false\r\nShutdownTerminal=No\r\n" \
+        "$MT5_LOGIN" "$MT5_PASSWORD" "$MT5_SERVER" "$MT5_LOGIN" "$MT5_PASSWORD" "$MT5_SERVER" > /app/mt5/start.ini
 }
 
 write_mt5_configs
 
-# Detect Wine executable (prefer wine64 first, identical to working a8f19d9 deployment)
+# Helper that returns 0 only if a NON-ZOMBIE matching process is alive (ignores <defunct> zombies)
+is_proc_alive() {
+    ps -eo stat=,args= | awk -v pat="$1" 'substr($1,1,1) != "Z" && index($0, pat) > 0 && $0 !~ /awk/ { found=1; exit 0 } END { exit (found ? 0 : 1) }'
+}
+
+# Detect Wine executable (prefer wine64 9.0 first)
 WINE_BIN=""
 for candidate in "/opt/wine-stable/bin/wine64" "/opt/wine-stable/bin/wine" "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
     if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then
@@ -61,57 +66,63 @@ done
 
 echo "🍷 Using Wine binary: $WINE_BIN ($($WINE_BIN --version 2>/dev/null || true))"
 
-# 3. Launch MetaTrader 5 Terminal64 + Native Wine Python Bridge + Watchdog asynchronously
-# so Ports 8085 and 8080 bind immediately within Railway healthcheck window.
+# 3. Launch MetaTrader 5 Terminal64 + Native Wine Python Bridge + Zombie-Aware Watchdog
 if [ -n "$WINE_BIN" ]; then
     (
-      # Initialize clean Wine64 prefix BEFORE applying native UCRT overrides
+      echo "🍷 Wine Version: $($WINE_BIN --version 2>&1)" > /tmp/mt5_terminal.log
+      # Fallback initialization if prefix missing; normally pre-initialized in Dockerfile
       export WINEDLLOVERRIDES="mscoree,mshtml="
       if [ ! -f /root/.wine/drive_c/windows/system32/kernel32.dll ]; then
           echo "🍷 Initializing fresh Wine64 Prefix in /root/.wine..." >> /tmp/mt5_terminal.log
           rm -rf /root/.wine
           $WINE_BIN wineboot --init >> /tmp/mt5_terminal.log 2>&1 || true
           wineserver -w 2>/dev/null || sleep 6
+          $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine" /v Version /t REG_SZ /d "win10" /f >/dev/null 2>&1 || true
+          $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
+          $WINE_BIN reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
       fi
 
-      $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine" /v Version /t REG_SZ /d "win10" /f >/dev/null 2>&1 || true
-      $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
-      $WINE_BIN reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
+      export WINEDLLOVERRIDES="mscoree,mshtml=;vcruntime140,vcruntime140_1,msvcp140=n,b"
+      export MT5_TERMINAL_PATH="Z:\\app\\mt5\\terminal64.exe"
 
-      # Install native UCRT DLLs (same layout as working a8f19d9) & set overrides AFTER wineboot
-      if [ -d /app/mt5_runtime_dlls ]; then
-          cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
-          cp -f /app/mt5_runtime_dlls/*.dll /app/winepy/ 2>/dev/null || true
-          mkdir -p /root/.wine/drive_c/windows/system32
-          cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true
-      fi
-      export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
-
-      echo "🚀 Launching MetaTrader 5 Terminal64 ($WINE_BIN /portable /config:start.ini)..." >> /tmp/mt5_terminal.log
-      cd /app/mt5
-      $WINE_BIN terminal64.exe /portable /config:start.ini >> /tmp/mt5_terminal.log 2>&1 &
-      sleep 12
+      launch_terminal() {
+          echo "🚀 Launching MetaTrader 5 Terminal64 ($WINE_BIN /portable /config:start.ini) at $(date -u +%FT%TZ)..." >> /tmp/mt5_terminal.log
+          (
+              cd /app/mt5 || exit 1
+              WINEDEBUG="err+all,-ole,-quartz" "$WINE_BIN" terminal64.exe /portable /config:start.ini >> /tmp/mt5_terminal.log 2>&1
+              echo "⚠️ [Exit] terminal64.exe exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_terminal.log
+          ) &
+      }
 
       WINE_PY="/app/winepy/python.exe"
       [ ! -f "$WINE_PY" ] && WINE_PY="python"
 
-      echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..." >> /tmp/mt5_wine_bridge.log
-      cd /app
-      $WINE_BIN "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1 &
+      launch_bridge() {
+          echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..." >> /tmp/mt5_wine_bridge.log
+          (
+              cd /app || exit 1
+              WINEDEBUG="-all" "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
+              echo "⚠️ [Exit] mt5_wine_bridge.py exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_wine_bridge.log
+          ) &
+      }
+
+      launch_terminal
+      sleep 14
+      launch_bridge
       sleep 4
 
-      # Self-healing Watchdog (keeps Config/common.ini Api=0 & revives terminal64 or bridge if either exits)
+      # Self-healing Watchdog (reaps/ignores zombie processes & restarts terminal64 or bridge if either exits)
       while true; do
         sleep 10
-        if ! pgrep -f "[t]erminal64.exe" >/dev/null 2>&1; then
-          echo "⚠️ [Watchdog] terminal64.exe died, re-writing Config/common.ini (Api=0, Enabled=1) and restarting..." >> /tmp/mt5_terminal.log
+        if ! is_proc_alive "terminal64.exe"; then
+          echo "⚠️ [Watchdog] terminal64.exe not alive, re-writing Config/common.ini (Api=0, Enabled=1) and restarting..." >> /tmp/mt5_terminal.log
           write_mt5_configs
-          cd /app/mt5 && $WINE_BIN terminal64.exe /portable /config:start.ini >> /tmp/mt5_terminal.log 2>&1 &
-          sleep 12
+          launch_terminal
+          sleep 14
         fi
-        if ! pgrep -f "[m]t5_wine_bridge.py" >/dev/null 2>&1; then
-          echo "⚠️ [Watchdog] mt5_wine_bridge.py died, restarting..." >> /tmp/mt5_wine_bridge.log
-          cd /app && $WINE_BIN "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1 &
+        if ! is_proc_alive "mt5_wine_bridge.py"; then
+          echo "⚠️ [Watchdog] mt5_wine_bridge.py not alive, restarting..." >> /tmp/mt5_wine_bridge.log
+          launch_bridge
           sleep 4
         fi
       done

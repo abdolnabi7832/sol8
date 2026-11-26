@@ -1412,6 +1412,19 @@ class MT5CockpitEngine:
                 time.sleep(0.02)
             if updated > 0:
                 self.mtf_last_sync[tf_up] = time.time()
+        elif not HAS_MT5_LIB or not self.is_connected or getattr(self, "is_cloud_mode", False):
+            # Fallback to live web feed while Wine MT5 initializes so MTF/session caches stay live
+            updated = 0
+            for sym in target_pairs:
+                try:
+                    bars = self.fetch_live_web_candles(sym, tf_up, count)
+                    if bars and len(bars) >= 30:
+                        cached[sym] = bars
+                        updated += 1
+                except Exception:
+                    pass
+            if updated > 0:
+                self.mtf_last_sync[tf_up] = time.time()
         return cached
 
     def sync_all_28_pairs_candles(self, count: int = 230) -> dict:
@@ -1476,18 +1489,42 @@ class MT5CockpitEngine:
                 except Exception as e:
                     print(f"[Candle Sync Warning] {p}: {e}", flush=True)
 
-        # 3. If Cloud/Headless mode or MT5 not returning candles: preserve existing CANDLES_FILE cleanly
-        if len(output["candles"]) < 20 and os.path.exists(CANDLES_FILE):
+        # 3. If MT5 not yet attached/returning candles: refresh all 28 D1 pairs from live institutional web feed
+        if len(output["candles"]) < 20:
+            try:
+                from concurrent.futures import ThreadPoolExecutor
+                def _fetch_d1(pair_sym):
+                    bars = self.fetch_live_web_candles(pair_sym, "D1", count)
+                    return pair_sym, bars
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    for pair_sym, bars in pool.map(_fetch_d1, self.STANDARD_28_PAIRS):
+                        if bars and len(bars) >= 30:
+                            output["candles"][pair_sym] = bars
+                            output["rates"][pair_sym] = bars[-1]["close"]
+                            self.mtf_candles.setdefault("D1", {})[pair_sym] = bars
+                if len(output["candles"]) >= 20:
+                    output["source"] = "Live Institutional FX Feed (Yahoo/Finnhub Fallback)"
+                    self.mtf_last_sync["D1"] = time.time()
+            except Exception as ex:
+                print(f"[Live Web D1 Fallback Warning] {ex}", flush=True)
+
+        # 4. Preserve cached entries only for any missing pairs if live sources were partial
+        if len(output["candles"]) < 28 and os.path.exists(CANDLES_FILE):
             try:
                 with open(CANDLES_FILE, "r", encoding="utf-8") as f:
                     cached = json.load(f)
-                if cached.get("candles") and len(cached["candles"]) >= 20:
-                    output["rates"] = cached.get("rates", output["rates"])
-                    output["candles"] = cached.get("candles", output["candles"])
-                    output["source"] = cached.get("source", output["source"])
-                    for k in ("candles_h4", "candles_h1", "candles_m15"):
-                        if not output.get(k) and cached.get(k):
-                            output[k] = cached[k]
+                cached_c = cached.get("candles") or {}
+                cached_r = cached.get("rates") or {}
+                for p in self.STANDARD_28_PAIRS:
+                    if p not in output["candles"] and p in cached_c:
+                        output["candles"][p] = cached_c[p]
+                    if p not in output["rates"] and p in cached_r:
+                        output["rates"][p] = cached_r[p]
+                if not output.get("source"):
+                    output["source"] = cached.get("source", "MetaTrader5 Institutional Feed")
+                for k in ("candles_h4", "candles_h1", "candles_m15"):
+                    if not output.get(k) and cached.get(k):
+                        output[k] = cached[k]
             except Exception:
                 pass
 
@@ -2452,9 +2489,38 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                                 bridge_log = txt
                     except Exception:
                         pass
+            mt5_internal_logs = {}
+            for log_dir in ("/app/mt5/Logs", "/app/mt5/logs", "/app/mt5/MQL5/Logs"):
+                if os.path.isdir(log_dir):
+                    try:
+                        files = sorted(
+                            [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.lower().endswith(".log")],
+                            key=lambda fp: os.path.getmtime(fp),
+                        )
+                        if files:
+                            latest = files[-1]
+                            with open(latest, "rb") as rf:
+                                raw_b = rf.read()
+                            if raw_b.startswith(b"\xff\xfe") or raw_b.count(b"\x00") > max(8, len(raw_b) // 8):
+                                dec_txt = raw_b.decode("utf-16-le", errors="replace").lstrip("\ufeff")
+                            else:
+                                dec_txt = raw_b.decode("utf-8", errors="replace").lstrip("\ufeff")
+                            mt5_internal_logs[latest] = dec_txt[-2500:]
+                    except Exception:
+                        pass
+            wine_ver = ""
+            for wcmd in ("/opt/wine-stable/bin/wine64", "/opt/wine-stable/bin/wine", "wine64", "wine"):
+                try:
+                    wine_ver = subprocess.check_output([wcmd, "--version"], timeout=2).decode("utf-8", "replace").strip()
+                    if wine_ver:
+                        wine_ver = f"{wcmd}: {wine_ver}"
+                        break
+                except Exception:
+                    pass
             wb_health = wine_bridge_get("/health", timeout=2.5) if self.engine.use_wine_bridge else None
             dbg = {
                 "platform": sys.platform,
+                "wine_version": wine_ver or None,
                 "mode": "wine_http_bridge" if self.engine.use_wine_bridge else "native_win32",
                 "is_connected": self.engine.is_connected,
                 "is_cloud_mode": getattr(self.engine, "is_cloud_mode", None),
@@ -2468,7 +2534,8 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                 "events": self.engine.event_logs[-20:],
                 "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5_wine_bridge", "xvfb", "openbox", "python", "java"))],
                 "mt5_terminal_log": term_log,
-                "mt5_wine_bridge_log": bridge_log
+                "mt5_wine_bridge_log": bridge_log,
+                "mt5_internal_logs": mt5_internal_logs,
             }
             self._set_cors_headers()
             self.wfile.write(json.dumps(dbg, ensure_ascii=False).encode("utf-8"))
