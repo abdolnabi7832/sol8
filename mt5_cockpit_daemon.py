@@ -2478,15 +2478,19 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                 ps_out = str(ex)
             term_log = ""
             bridge_log = ""
-            for p, name in [("/tmp/mt5_terminal.log", "term"), ("/tmp/mt5_wine_bridge.log", "bridge")]:
+            for p, name in [
+                ("/tmp/mt5_terminal.log", "term"),
+                ("/tmp/mt5_wine_bridge.log", "bridge"),
+                ("/tmp/mt5_wine_bridge_py.log", "bridge"),
+            ]:
                 if os.path.exists(p):
                     try:
                         with open(p, "r", encoding="utf-8", errors="replace") as lf:
                             txt = lf.read()[-2500:]
                             if name == "term":
                                 term_log = txt
-                            else:
-                                bridge_log = txt
+                            elif txt:
+                                bridge_log = (bridge_log + "\n" + txt)[-3500:] if bridge_log else txt
                     except Exception:
                         pass
             mt5_internal_logs = {}

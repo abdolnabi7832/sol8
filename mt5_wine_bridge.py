@@ -15,6 +15,27 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+# Under pythonw.exe (WINDOWS_GUI subsystem), sys.stdout/stderr/stdin are None.
+if sys.stdout is None or sys.stderr is None:
+    _bridge_log = os.environ.get("MT5_BRIDGE_LOG", r"Z:\tmp\mt5_wine_bridge_py.log")
+    try:
+        _lf = open(_bridge_log, "a", encoding="utf-8", buffering=1)
+        if sys.stdout is None:
+            sys.stdout = _lf
+        if sys.stderr is None:
+            sys.stderr = _lf
+    except Exception:
+        _devnull = open(os.devnull, "w", encoding="utf-8")
+        if sys.stdout is None:
+            sys.stdout = _devnull
+        if sys.stderr is None:
+            sys.stderr = _devnull
+if sys.stdin is None:
+    try:
+        sys.stdin = open(os.devnull, "r", encoding="utf-8")
+    except Exception:
+        pass
+
 try:
     import MetaTrader5 as mt5
 except ImportError as exc:

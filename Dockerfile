@@ -68,8 +68,7 @@ RUN mkdir -p /app/winepy/Lib/site-packages && \
         --target /app/winepy/Lib/site-packages "MetaTrader5>=5.0.45" "numpy<2.3" && \
     cp -f /app/mt5_runtime_dlls/vcruntime140*.dll /app/mt5_runtime_dlls/msvcp140.dll /app/winepy/ 2>/dev/null || true
 
-# 3. Pre-initialize clean Wine64 9.0 Prefix (/root/.wine) & verify foreground + background PTY MetaTrader5
-COPY wine_pty.py /app/wine_pty.py
+# 3. Pre-initialize clean Wine64 9.0 Prefix (/root/.wine) & verify headless pythonw.exe + MetaTrader5
 RUN WINE_CMD="/opt/wine-stable/bin/wine64" && \
     [ -x "$WINE_CMD" ] || WINE_CMD="$(command -v wine64 || command -v wine)" && \
     echo "BUILD_WINE_CMD=$WINE_CMD ($($WINE_CMD --version))" && \
@@ -78,10 +77,9 @@ RUN WINE_CMD="/opt/wine-stable/bin/wine64" && \
     "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f && \
     "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f && \
     "$WINE_CMD" reg add "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug" /v Auto /t REG_SZ /d "0" /f && \
-    xvfb-run -a "$WINE_CMD" /app/winepy/python.exe -c "import MetaTrader5 as mt5, numpy; print('WINE_MT5_READY', mt5.__version__, numpy.__version__)" && \
-    PYTHONLEGACYWINDOWSSTDIO=1 PYTHONIOENCODING=utf-8 xvfb-run -a sh -c '( python3 -u /app/wine_pty.py "$1" /app/winepy/python.exe -c "import MetaTrader5 as mt5, numpy; print(998877, mt5.__version__, numpy.__version__)" >> /tmp/bg_pty.log 2>&1 ) & wait $!' _ "$WINE_CMD" && \
-    cat /tmp/bg_pty.log && grep -q "998877" /tmp/bg_pty.log && \
-    rm -f /tmp/bg_pty.log && \
+    xvfb-run -a "$WINE_CMD" /app/winepy/pythonw.exe -c "import MetaTrader5 as mt5, numpy; open('Z:/tmp/pw_ok', 'w').write('WINE_PYTHONW_OK ' + mt5.__version__ + ' ' + numpy.__version__)" </dev/null >/tmp/pw.log 2>&1 && \
+    cat /tmp/pw_ok && grep -q "WINE_PYTHONW_OK" /tmp/pw_ok && \
+    rm -f /tmp/pw_ok /tmp/pw.log && \
     (wineserver -k || true)
 
 # 4. Install Linux Python requirements
