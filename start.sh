@@ -94,16 +94,27 @@ if [ -n "$WINE_BIN" ]; then
           ) &
       }
 
-      WINE_PY="/app/winepy/pythonw.exe"
-      [ ! -f "$WINE_PY" ] && WINE_PY="/app/winepy/python.exe"
+      WINE_PYW="/app/winepy/pythonw.exe"
+      WINE_PY="/app/winepy/python.exe"
+      [ ! -f "$WINE_PY" ] && WINE_PY="python"
+      BRIDGE_TRY=0
 
       launch_bridge() {
-          echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY}) at $(date -u +%FT%TZ)..." >> /tmp/mt5_wine_bridge.log
+          local mode=$((BRIDGE_TRY % 3))
+          BRIDGE_TRY=$((BRIDGE_TRY + 1))
+          echo "⚡ Launching Native Wine Python MT5 HTTP Bridge (mode=${mode}) on Port ${MT5_BRIDGE_PORT} at $(date -u +%FT%TZ)..." >> /tmp/mt5_wine_bridge.log
           (
               cd /app || exit 1
-              MT5_BRIDGE_LOG="Z:\\tmp\\mt5_wine_bridge_py.log" WINEDEBUG="err+all,-ole,-quartz" \
-              "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" </dev/null >> /tmp/mt5_wine_bridge.log 2>&1
-              echo "⚠️ [Exit] mt5_wine_bridge.py exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_wine_bridge.log
+              export MT5_BRIDGE_LOG="Z:\\tmp\\mt5_wine_bridge_py.log"
+              export PYTHONIOENCODING="utf-8"
+              if [ "$mode" -eq 0 ] && [ -f "$WINE_PYW" ]; then
+                  WINEDEBUG="err+all,-ole,-quartz" "$WINE_BIN" "$WINE_PYW" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" </dev/null >> /tmp/mt5_wine_bridge.log 2>&1
+              elif [ "$mode" -eq 1 ] && command -v script >/dev/null 2>&1; then
+                  PYTHONLEGACYWINDOWSSTDIO=1 WINEDEBUG="-all" script -q -c "\"$WINE_BIN\" \"$WINE_PY\" /app/mt5_wine_bridge.py --port ${MT5_BRIDGE_PORT}" /dev/null >> /tmp/mt5_wine_bridge.log 2>&1
+              else
+                  PYTHONLEGACYWINDOWSSTDIO=1 WINEDEBUG="-all" python3 -u -c 'import subprocess, sys; p = subprocess.Popen(sys.argv[1:], stdin=subprocess.PIPE); sys.exit(p.wait())' "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
+              fi
+              echo "⚠️ [Exit] mt5_wine_bridge.py (mode=${mode}) exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_wine_bridge.log
           ) &
       }
 
