@@ -7,9 +7,9 @@ echo "=========================================================="
 export DEBIAN_FRONTEND=noninteractive
 export DISPLAY=:99
 export WINEDEBUG=-all
-export WINEPREFIX=${WINEPREFIX:-/root/.wine}
+export WINEPREFIX=/root/.wine
 export WINEARCH=win64
-export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
+export WINEDLLOVERRIDES="mscoree,mshtml="
 export PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
 export MT5_LOGIN="${MT5_LOGIN:-57452535486}"
@@ -50,9 +50,9 @@ write_mt5_configs() {
 
 write_mt5_configs
 
-# Detect Wine binary (WineHQ Stable provides 'wine' or 'wine64')
+# Detect Wine executable (prefer wine64 first, identical to working a8f19d9 deployment)
 WINE_BIN=""
-for candidate in "/opt/wine-stable/bin/wine" "/opt/wine-stable/bin/wine64" "/usr/bin/wine64" "/usr/bin/wine" "wine" "wine64"; do
+for candidate in "/opt/wine-stable/bin/wine64" "/opt/wine-stable/bin/wine" "/usr/bin/wine64" "/usr/lib/wine/wine64" "/usr/bin/wine" "wine64" "wine"; do
     if [ -x "$candidate" ] || command -v "$candidate" >/dev/null 2>&1; then
         WINE_BIN="$candidate"
         break
@@ -65,23 +65,29 @@ echo "🍷 Using Wine binary: $WINE_BIN ($($WINE_BIN --version 2>/dev/null || tr
 # so Ports 8085 and 8080 bind immediately within Railway healthcheck window.
 if [ -n "$WINE_BIN" ]; then
     (
-      if [ ! -d /root/.wine/drive_c ]; then
-          echo "🍷 Initializing Wine64 Prefix in headless mode..."
-          $WINE_BIN wineboot --init || true
-          sleep 5
+      # Initialize clean Wine64 prefix BEFORE applying native UCRT overrides
+      export WINEDLLOVERRIDES="mscoree,mshtml="
+      if [ ! -f /root/.wine/drive_c/windows/system32/kernel32.dll ]; then
+          echo "🍷 Initializing fresh Wine64 Prefix in /root/.wine..." >> /tmp/mt5_terminal.log
+          rm -rf /root/.wine
+          $WINE_BIN wineboot --init >> /tmp/mt5_terminal.log 2>&1 || true
+          wineserver -w 2>/dev/null || sleep 6
       fi
 
+      $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine" /v Version /t REG_SZ /d "win10" /f >/dev/null 2>&1 || true
+      $WINE_BIN reg add "HKEY_CURRENT_USER\Software\Wine\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
+      $WINE_BIN reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
+
+      # Install native UCRT DLLs (same layout as working a8f19d9) & set overrides AFTER wineboot
       if [ -d /app/mt5_runtime_dlls ]; then
           cp -f /app/mt5_runtime_dlls/*.dll /app/mt5/ 2>/dev/null || true
+          cp -f /app/mt5_runtime_dlls/*.dll /app/winepy/ 2>/dev/null || true
           mkdir -p /root/.wine/drive_c/windows/system32
           cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true
       fi
+      export WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b"
 
-      $WINE_BIN reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f >/dev/null 2>&1 || true
-      $WINE_BIN reg add "HKEY_CURRENT_USER\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f >/dev/null 2>&1 || true
-      $WINE_BIN reg add "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug" /v Auto /t REG_SZ /d "0" /f >/dev/null 2>&1 || true
-
-      echo "🚀 Launching MetaTrader 5 Terminal64 inside Wine (/portable /config:start.ini)..."
+      echo "🚀 Launching MetaTrader 5 Terminal64 ($WINE_BIN /portable /config:start.ini)..." >> /tmp/mt5_terminal.log
       cd /app/mt5
       $WINE_BIN terminal64.exe /portable /config:start.ini >> /tmp/mt5_terminal.log 2>&1 &
       sleep 12
@@ -89,7 +95,7 @@ if [ -n "$WINE_BIN" ]; then
       WINE_PY="/app/winepy/python.exe"
       [ ! -f "$WINE_PY" ] && WINE_PY="python"
 
-      echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..."
+      echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..." >> /tmp/mt5_wine_bridge.log
       cd /app
       $WINE_BIN "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1 &
       sleep 4

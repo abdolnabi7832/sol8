@@ -20,7 +20,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     WINEARCH=win64 \
     DISPLAY=:99 \
     WINEDEBUG=-all \
-    WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b" \
+    WINEDLLOVERRIDES="mscoree,mshtml=" \
     PYTHON_VERSION=3.12.8 \
     PATH="/opt/wine-stable/bin:/usr/lib/wine:${PATH}"
 
@@ -52,7 +52,6 @@ RUN dpkg --add-architecture i386 && \
     rm -rf /var/lib/apt/lists/*
 
 # 2. Install Embeddable Windows Python 3.12 + Official MetaTrader5 & NumPy Wheels into /app/winepy
-# Avoids brittle Wine MSI/winetricks installers while running native win_amd64 MetaTrader5 IPC.
 COPY mt5_runtime_dlls/ /app/mt5_runtime_dlls/
 RUN mkdir -p /app/winepy/Lib/site-packages && \
     curl -fsSL -o /tmp/python-embed.zip "https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-embed-amd64.zip" && \
@@ -64,16 +63,19 @@ RUN mkdir -p /app/winepy/Lib/site-packages && \
         --target /app/winepy/Lib/site-packages "MetaTrader5>=5.0.45" "numpy<2.3" && \
     cp -f /app/mt5_runtime_dlls/*.dll /app/winepy/ 2>/dev/null || true
 
-# 3. Pre-initialize Wine64 Prefix + Native UCRT DLLs + Build-Time Verification of MetaTrader5 Import in Wine
-RUN WINE_CMD="$(command -v wine || command -v wine64)" && \
-    xvfb-run -a "$WINE_CMD" wineboot --init && wineserver -w && \
-    mkdir -p /root/.wine/drive_c/windows/system32 && \
-    cp -f /app/mt5_runtime_dlls/*.dll /root/.wine/drive_c/windows/system32/ 2>/dev/null || true && \
-    "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine" /v Version /t REG_SZ /d "win10" /f && \
-    "$WINE_CMD" reg add "HKEY_CURRENT_USER\\Software\\Wine\\WineDbg" /v ShowCrashDialog /t REG_DWORD /d 0 /f && \
-    "$WINE_CMD" reg add "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug" /v Auto /t REG_SZ /d "0" /f && \
-    xvfb-run -a "$WINE_CMD" /app/winepy/python.exe -c "import MetaTrader5 as mt5; print('WINE_MT5_READY', mt5.__version__)" && \
-    wineserver -w
+# 3. Verify Wine + Embeddable Python + MetaTrader5 import cleanly using an isolated build prefix
+#    (Runtime /root/.wine is initialized cleanly at container startup just like working runtime)
+RUN WINE_CMD="" && \
+    for c in "/opt/wine-stable/bin/wine64" "/opt/wine-stable/bin/wine" "/usr/bin/wine64" "/usr/bin/wine"; do \
+        if [ -x "$c" ]; then WINE_CMD="$c"; break; fi; \
+    done && \
+    echo "BUILD_WINE_CMD=$WINE_CMD" && \
+    WINEPREFIX=/tmp/wine_build_test xvfb-run -a "$WINE_CMD" wineboot --init && \
+    WINEPREFIX=/tmp/wine_build_test wineserver -w && \
+    WINEPREFIX=/tmp/wine_build_test WINEDLLOVERRIDES="mscoree,mshtml=;ucrtbase,api-ms-win-crt-runtime-l1-1-0,api-ms-win-crt-math-l1-1-0,vcruntime140,vcruntime140_1,msvcp140=n,b" \
+        xvfb-run -a "$WINE_CMD" /app/winepy/python.exe -c "import MetaTrader5 as mt5; print('WINE_MT5_READY', mt5.__version__)" && \
+    WINEPREFIX=/tmp/wine_build_test wineserver -k || true && \
+    rm -rf /tmp/wine_build_test
 
 # 4. Install Linux Python requirements
 COPY requirements.txt /app/requirements.txt
