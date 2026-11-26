@@ -208,6 +208,10 @@ class TestAutonomousBespokeSystem(unittest.TestCase):
             self.assertEqual(len(self.engine.orders), 1)
 
     def test_h4_ny_london_sweep_chfjpy_and_d1_budget_cap(self):
+        # Include live-formatted string type position ("BUY") to guard against int("BUY") ValueError
+        self.engine.positions = [
+            {"ticket": 210681297, "symbol": "EURAUD", "type": "BUY", "action": "BUY", "volume": 0.01, "profit": 0.59}
+        ]
         self.engine.mtf["D1"] = {
             "EURCHF": make_d1_bars(240, base=0.9500, step=0.0001, oversold_end=True, move_step=0.0150),
             "AUDNZD": make_d1_bars(240, base=1.0800, step=0.0001, oversold_end=True, move_step=0.0150),

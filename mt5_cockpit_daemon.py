@@ -2730,9 +2730,18 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"autopilot_enabled": self.engine.autopilot_enabled}).encode("utf-8"))
 
         elif path == "/api/mt5/autopilot/scan":
-            st = self.engine.autonomous_trader.evaluate_and_trade_once(force=True)
-            self._set_cors_headers()
-            self.wfile.write(json.dumps({"success": True, "status": st}, ensure_ascii=False).encode("utf-8"))
+            try:
+                st = self.engine.autonomous_trader.evaluate_and_trade_once(force=True)
+                self._set_cors_headers()
+                self.wfile.write(json.dumps({"success": True, "status": st}, ensure_ascii=False).encode("utf-8"))
+            except Exception as ex:
+                import traceback
+                traceback.print_exc()
+                self.engine.log_event(f"⚠️ Autopilot scan error: {ex}")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": False, "error": str(ex)}, ensure_ascii=False).encode("utf-8"))
 
         elif path == "/api/mt5/bridge/poll":
             with self.engine.bridge_lock:

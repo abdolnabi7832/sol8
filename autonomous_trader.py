@@ -486,7 +486,8 @@ class AutonomousTrader:
         for p in positions:
             sym = str(p.get("symbol", "")).upper()
             if len(sym) == 6:
-                d = 1 if int(p.get("type", 0)) == 0 else -1
+                ptype = p.get("type", p.get("action", 0))
+                d = 1 if str(ptype).strip().upper() in ("0", "BUY", "LONG") else -1
                 ccy_exp[sym[:3]] = ccy_exp.get(sym[:3], 0) + d
                 ccy_exp[sym[3:]] = ccy_exp.get(sym[3:], 0) - d
 

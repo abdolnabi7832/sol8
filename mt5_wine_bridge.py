@@ -361,7 +361,8 @@ def _detect_broker_offset_locked() -> int:
 
 def handle_candles(symbol: str, timeframe: str = "D1", count: int = 60):
     sym = symbol.upper()
-    tf_const = TIMEFRAME_MAP.get(timeframe.upper(), mt5.TIMEFRAME_D1)
+    tf_up = str(timeframe or "D1").upper()
+    tf_const = TIMEFRAME_MAP.get(tf_up, mt5.TIMEFRAME_D1)
     with _mt5_lock:
         ok, _, _ = _ensure_connected_locked()
         if not ok:
@@ -371,11 +372,13 @@ def handle_candles(symbol: str, timeframe: str = "D1", count: int = 60):
         s_info = mt5.symbol_info(sym)
         tick = mt5.symbol_info_tick(sym)
         rates = mt5.copy_rates_from_pos(sym, tf_const, 0, int(count))
+    # D1/W1/MN1 bar timestamps already denote the broker calendar day at 00:00; only intraday bars need UTC shift
+    ts_shift = 0 if tf_up in ("D1", "W1", "MN1") else offset_s
     bars = []
     if rates is not None and len(rates) > 0:
         for r in rates:
             bars.append({
-                "time": int(r["time"]) - offset_s,
+                "time": int(r["time"]) - ts_shift,
                 "open": float(r["open"]),
                 "high": float(r["high"]),
                 "low": float(r["low"]),
@@ -403,6 +406,7 @@ def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
         if not ok:
             return {"connected": False, "rates": {}, "candles": {}}
         offset_s = _detect_broker_offset_locked()
+    ts_shift = 0 if tf_up in ("D1", "W1", "MN1") else offset_s
 
     for sym in STANDARD_28_PAIRS:
         try:
@@ -424,7 +428,7 @@ def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
                     cl = float(r["close"])
                     ema20 = cl * k20 + ema20 * (1.0 - k20)
                     ema50 = cl * k50 + ema50 * (1.0 - k50)
-                    dt = datetime.datetime.fromtimestamp(int(r["time"]) - offset_s, datetime.timezone.utc).strftime(dt_fmt)
+                    dt = datetime.datetime.fromtimestamp(int(r["time"]) - ts_shift, datetime.timezone.utc).strftime(dt_fmt)
                     bars.append({
                         "daysAgo": total_n - 1 - idx,
                         "date": dt,
