@@ -328,7 +328,8 @@ class AutonomousTrader:
                     if pair:
                         pair_deltas[pair] = float(sig.get("deltaScore", 0.0))
                         signal_map[pair] = sig
-                        if sig.get("isNewsLocked"):
+                        gates = sig.get("gates") or {}
+                        if sig.get("isNewsLocked") or str(gates.get("gate4NewsStatus", "")).upper() == "NEWS_LOCKED":
                             news_locked_ccys.add(pair[:3])
                             news_locked_ccys.add(pair[3:])
 

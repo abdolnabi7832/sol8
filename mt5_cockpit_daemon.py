@@ -2091,6 +2091,13 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
         # 4. Top Signals Matrix (LIVE from Java 6-Pillar Quant Engine + Autopilot)
         elif lower_act.startswith("/signals") or "signal" in lower_act or "سیگنال" in act or act == "btn_signals":
             top_lines = []
+            live_rates = {}
+            if os.path.exists(CANDLES_FILE):
+                try:
+                    with open(CANDLES_FILE, "r", encoding="utf-8") as cf:
+                        live_rates = (json.load(cf) or {}).get("rates") or {}
+                except Exception:
+                    pass
             try:
                 bs = requests.get("http://127.0.0.1:8080/api/v1/bootstrap", timeout=5).json()
                 sigs = sorted(bs.get("pairSignals") or [], key=lambda s: abs(float(s.get("deltaScore", 0))), reverse=True)
@@ -2099,12 +2106,16 @@ def telegram_bot_listener(engine: MT5CockpitEngine):
                     m = medals[idx] if idx < 3 else "📌"
                     p = s.get("pair", "")
                     d_sc = float(s.get("deltaScore", 0))
-                    bias = s.get("signalGrade") or ("BUY" if d_sc >= 0 else "SELL")
-                    spot = s.get("spotPrice", "-")
-                    gate = "✅ 7/7" if s.get("allSevenGatesPassed") else ("🔒 NEWS" if s.get("isNewsLocked") else "⚠️ GATED")
+                    gates = s.get("gates") or {}
+                    bias = s.get("signalClassification") or s.get("direction") or ("BUY" if d_sc >= 0 else "SELL")
+                    spot = live_rates.get(p, "-")
+                    news_st = str(gates.get("gate4NewsStatus", "")).upper()
+                    gate = "✅ 7/7" if gates.get("allSevenGatesPassed") else ("🔒 NEWS" if news_st == "NEWS_LOCKED" else "⏳ WAIT_SETUP")
+                    slp = gates.get("stopLossPips", "-")
+                    conf = s.get("overallConfidencePercent", 0)
                     top_lines.append(
                         f"{m} <b>{p}:</b> <b>{bias}</b> (ΔScore: <code>{d_sc:+.2f}</code> | {gate})\n"
-                        f"    ↳ Spot: <code>{spot}</code> | SL: <code>{s.get('suggestedSlPips', '-')}p</code> | Conf: <code>{s.get('confidencePercent', 0)}%</code>"
+                        f"    ↳ Spot: <code>{spot}</code> | SL: <code>{slp}p</code> | Conf: <code>{conf}%</code>"
                     )
             except Exception:
                 pass
