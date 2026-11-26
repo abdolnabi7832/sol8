@@ -17,36 +17,39 @@ except ImportError:
     mt5 = None
     HAS_MT5_LIB = False
 
-try:
-    import rpyc
-    HAS_RPYC = True
-except ImportError:
-    rpyc = None
-    HAS_RPYC = False
-
 import socket
+import requests
+
+WINE_BRIDGE_URL = os.environ.get("MT5_WINE_BRIDGE_URL", "http://127.0.0.1:18815").rstrip("/")
+_bridge_tls = threading.local()
 
 
-def is_port_open(host="127.0.0.1", port=18812, timeout=0.15) -> bool:
+def _bridge_session():
+    sess = getattr(_bridge_tls, "session", None)
+    if sess is None:
+        sess = requests.Session()
+        _bridge_tls.session = sess
+    return sess
+
+
+def wine_bridge_get(path: str, params: dict = None, timeout: float = 4.0):
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(timeout)
-        s.connect((host, port))
-        s.close()
-        return True
+        r = _bridge_session().get(f"{WINE_BRIDGE_URL}{path}", params=params, timeout=timeout)
+        if r.status_code == 200:
+            return r.json()
     except Exception:
-        return False
+        pass
+    return None
 
 
-def get_rpyc_mt5_instance(host="127.0.0.1", port=18812, timeout=2):
-    if not rpyc or not is_port_open(host, port, timeout=0.15):
-        return None, None
+def wine_bridge_post(path: str, payload: dict = None, timeout: float = 20.0):
     try:
-        conn = rpyc.classic.connect(host, port)
-        conn._config["sync_request_timeout"] = timeout
-        return conn, conn.modules.MetaTrader5
+        r = _bridge_session().post(f"{WINE_BRIDGE_URL}{path}", json=payload or {}, timeout=timeout)
+        if r.status_code == 200:
+            return r.json()
     except Exception:
-        return None, None
+        pass
+    return None
 
 
 IS_HEADLESS_MODE = (
@@ -298,13 +301,15 @@ def render_chart_snapshot(symbol: str = "EURUSD", action: str = "BUY", entry: fl
 
     # Fetch real rates from MT5 if connected, else read from CANDLES_FILE
     rates_data = None
-    if not IS_HEADLESS_MODE and HAS_MT5_LIB and mt5:
+    if sys.platform != "win32":
+        wb = wine_bridge_get("/candles", {"symbol": symbol, "timeframe": "H4", "count": 42}, timeout=3.5)
+        if wb and wb.get("connected") and len(wb.get("bars") or []) >= 15:
+            rates_data = wb["bars"]
+    elif not IS_HEADLESS_MODE and HAS_MT5_LIB and mt5:
         try:
             mt5.symbol_select(symbol, True)
             tf_h4 = getattr(mt5, "TIMEFRAME_H4", 16388)
             raw = mt5.copy_rates_from_pos(symbol, tf_h4, 0, 42)
-            if rpyc and hasattr(rpyc.classic, "obtain"):
-                raw = rpyc.classic.obtain(raw)
             if raw is not None and len(raw) >= 15:
                 rates_data = raw
         except Exception:
@@ -496,10 +501,12 @@ class MT5CockpitEngine:
         self.terminal_path = find_mt5_terminal_path(self.creds.get("terminal_path"))
         self.magic_number = int(self.creds.get("magic_number", MAGIC_NUMBER))
         self.autopilot_enabled = True
+        self.use_wine_bridge = (sys.platform != "win32")
+        self.wine_bridge_ok = False
         self.is_connected = False
         self.is_cloud_mode = False
-        self.rpyc_conn = None
-        self.mt5_rpc_lock = threading.RLock()
+        self.last_terminal_info = None
+        self.last_order_result = None
         self.bridge_lock = threading.Lock()
         self.last_bridge_poll_ts = 0.0
         self.bridge_account = None
@@ -509,6 +516,7 @@ class MT5CockpitEngine:
         self.bridge_results = {}
         self.last_connect_error = None
         self.last_order_error = None
+        self._standby_logged = False
         self.managed_positions_state = {}
         self.positions_file = os.path.join(LOGS_DIR, "active_positions.json")
         self.tracked_positions = self.load_tracked_positions()
@@ -557,45 +565,17 @@ class MT5CockpitEngine:
                 password = str(self.creds.get("password", "")).strip()
                 server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
 
-                # If on Linux or Wine environment or RPyC bridge available: Connect to local mt5server via RPyC (Port 18812)
-                try:
-                    conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812)
-                    if test_mt5 is not None:
-                        global mt5, HAS_MT5_LIB
-                        init_ok = False
-                        try:
-                            init_ok = bool(test_mt5.initialize())
-                        except Exception:
-                            pass
-                        if not init_ok:
-                            try:
-                                init_ok = bool(test_mt5.initialize(path=r"Z:\app\mt5\terminal64.exe", portable=True))
-                            except Exception:
-                                pass
-                        if init_ok:
-                            if login and password:
-                                try:
-                                    test_mt5.login(login=login, password=password, server=server)
-                                except Exception:
-                                    pass
-                            acc = None
-                            try:
-                                acc = test_mt5.account_info()
-                                if rpyc and hasattr(rpyc.classic, 'obtain'):
-                                    acc = rpyc.classic.obtain(acc)
-                            except Exception:
-                                pass
-                            if acc and getattr(acc, 'login', None):
-                                self.rpyc_conn = conn
-                                mt5 = test_mt5
-                                HAS_MT5_LIB = True
-                                self.is_connected = True
-                                self.is_cloud_mode = False
-                                self.last_connect_error = None
-                                self.log_event(f"🚀 [Wine MT5 Live] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
-                                return True
-                except Exception as e:
-                    self.log_event(f"⏳ Wine MT5 Bridge: waiting for terminal64 & mt5server ({e})")
+                # Linux / Railway Wine Mode: attach to native Wine Python HTTP Bridge on port 18815
+                if self.use_wine_bridge:
+                    if self.try_attach_wine_mt5(force=True):
+                        return True
+                    self.is_connected = True
+                    self.is_cloud_mode = True
+                    self.wine_bridge_ok = False
+                    if not self._standby_logged:
+                        self._standby_logged = True
+                        self.log_event(f"⏳ Cloud Gateway standby active (#{login} on {server}). Auto-attaching to Wine MT5 HTTP bridge...")
+                    return True
 
                 # Try silent attach to already running native terminal on Windows without launching GUI window
                 try:
@@ -626,23 +606,26 @@ class MT5CockpitEngine:
                     except Exception as e:
                         self.log_event(f"⚠️ Native MT5 launch notice: {e}")
 
-                # Fallback to Cloud Headless Gateway mode (Seamless fallback during boot or standby)
                 self.is_connected = True
                 self.is_cloud_mode = True
                 self.last_connect_error = None
-                self.log_event(f"☁️ Cloud Gateway standby active: #{login} on {server} ($100.00). Terminal sync will auto-attach.")
+                if not self._standby_logged:
+                    self._standby_logged = True
+                    self.log_event(f"☁️ Gateway standby active: #{login} on {server} ($100.00).")
                 return True
             except Exception as e:
                 self.is_connected = True
                 self.is_cloud_mode = True
-                self.last_connect_error = None
-                self.log_event(f"☁️ Cloud Gateway activated: #{self.creds.get('login', 57452535486)}")
+                self.last_connect_error = str(e)
                 return True
 
     def ensure_connected(self) -> bool:
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok or self.is_cloud_mode:
+                self.try_attach_wine_mt5()
+            return True
         if not self.is_connected or getattr(self, "is_cloud_mode", False) or mt5 is None:
-            if not self.try_attach_wine_mt5():
-                self.try_attach_native_windows_mt5()
+            self.try_attach_native_windows_mt5()
         if not self.is_connected:
             return self.connect()
         return True
@@ -670,53 +653,44 @@ class MT5CockpitEngine:
         return False
 
     def try_attach_wine_mt5(self, force: bool = False) -> bool:
-        global mt5, HAS_MT5_LIB
-        if not force and not getattr(self, "is_cloud_mode", False) and self.is_connected and mt5 is not None:
-            if self.rpyc_conn is not None and not getattr(self.rpyc_conn, "closed", False):
-                return True
-        if not is_port_open("127.0.0.1", 18812, timeout=0.15):
+        if not self.use_wine_bridge:
             return False
-        try:
-            conn, test_mt5 = get_rpyc_mt5_instance("127.0.0.1", 18812, timeout=10)
-            if test_mt5 is not None:
-                init_ok = False
-                try:
-                    init_ok = bool(test_mt5.initialize())
-                except Exception:
-                    pass
-                if not init_ok:
-                    try:
-                        init_ok = bool(test_mt5.initialize(path=r"Z:\app\mt5\terminal64.exe", portable=True))
-                    except Exception:
-                        pass
-                if init_ok:
-                    login = int(self.creds.get("login", 0)) if str(self.creds.get("login", "")).isdigit() else 57452535486
-                    password = str(self.creds.get("password", "")).strip()
-                    server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
-                    if login and password:
-                        try:
-                            test_mt5.login(login=login, password=password, server=server)
-                        except Exception:
-                            pass
-                    acc = None
-                    try:
-                        acc = test_mt5.account_info()
-                        if rpyc and hasattr(rpyc.classic, 'obtain'):
-                            acc = rpyc.classic.obtain(acc)
-                    except Exception:
-                        pass
-                    if acc and getattr(acc, 'login', None):
-                        self.rpyc_conn = conn
-                        mt5 = test_mt5
-                        HAS_MT5_LIB = True
-                        self.is_connected = True
-                        self.is_cloud_mode = False
-                        self.last_connect_error = None
-                        self.log_event(f"🚀 [Wine MT5 Live Upgrade] Connected to GTC Broker: #{acc.login} ({getattr(acc, 'company', 'GTC')}) | Server: {getattr(acc, 'server', server)} | Balance: ${getattr(acc, 'balance', 0.0):.2f} | Leverage: 1:{getattr(acc, 'leverage', 500)}")
-                        self.ensure_wine_algotrading_enabled()
-                        return True
-        except Exception as e:
-            self.last_connect_error = str(e)
+        if not force and self.wine_bridge_ok and not self.is_cloud_mode:
+            return True
+
+        health = wine_bridge_get("/health", timeout=2.0)
+        if health is None:
+            self.wine_bridge_ok = False
+            self.is_cloud_mode = True
+            return False
+
+        if not health.get("connected"):
+            login = int(self.creds.get("login", 0)) if str(self.creds.get("login", "")).isdigit() else 57452535486
+            password = str(self.creds.get("password", "")).strip()
+            server = str(self.creds.get("server", "GTCGlobalTrade-Demo")).strip()
+            health = wine_bridge_post("/initialize", {"login": login, "password": password, "server": server}, timeout=5.0) or health
+
+        if health and health.get("connected"):
+            acc = health.get("account_info") or {}
+            ti = health.get("terminal_info") or {}
+            was_offline = (not self.wine_bridge_ok) or self.is_cloud_mode
+            self.wine_bridge_ok = True
+            self.is_connected = True
+            self.is_cloud_mode = False
+            self.last_connect_error = None
+            self.last_terminal_info = ti
+            if was_offline:
+                self.log_event(
+                    f"🚀 [Wine MT5 Live] Connected to GTC Broker: #{acc.get('login')} ({acc.get('company', 'GTC')}) | "
+                    f"Server: {acc.get('server')} | Balance: ${float(acc.get('balance', 0.0)):.2f} | "
+                    f"trade_allowed={ti.get('trade_allowed')} tradeapi_disabled={ti.get('tradeapi_disabled')}"
+                )
+            return True
+
+        self.wine_bridge_ok = False
+        self.is_cloud_mode = True
+        self.last_terminal_info = (health or {}).get("terminal_info")
+        self.last_connect_error = str((health or {}).get("last_error") or "Wine MT5 bridge warming up")
         return False
 
     def update_credentials(self, new_config: dict) -> dict:
@@ -785,19 +759,51 @@ class MT5CockpitEngine:
         return {"success": False, "error": "تایم‌اوت در ارتباط با پل ویندوزی MT5 (Bridge Timeout)"}
 
     def get_account_summary(self) -> dict:
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok:
+                self.try_attach_wine_mt5()
+            if self.wine_bridge_ok:
+                acc = wine_bridge_get("/account", timeout=3.5)
+                if acc and acc.get("connected"):
+                    bal = float(acc.get("balance", 0.0))
+                    fl_pnl = float(acc.get("floating_pnl", 0.0))
+                    margin = float(acc.get("margin", 0.0))
+                    return {
+                        "connected": True,
+                        "live_broker_attached": True,
+                        "mode": "WINE_MT5_LIVE",
+                        "login": acc.get("login"),
+                        "name": acc.get("name"),
+                        "company": acc.get("company"),
+                        "server": acc.get("server"),
+                        "currency": acc.get("currency", "USD"),
+                        "balance": round(bal, 2),
+                        "equity": round(float(acc.get("equity", bal)), 2),
+                        "margin": round(margin, 2),
+                        "margin_free": round(float(acc.get("margin_free", bal)), 2),
+                        "margin_level": round(float(acc.get("margin_level", 0.0)), 2) if margin > 0 else 0.0,
+                        "floating_pnl": round(fl_pnl, 2),
+                        "floating_pnl_pct": round((fl_pnl / bal * 100), 2) if bal > 0 else 0.0,
+                        "leverage": acc.get("leverage", 500),
+                        "open_positions_count": acc.get("open_positions_count", 0),
+                        "terminal_trade_allowed": acc.get("terminal_trade_allowed"),
+                        "terminal_tradeapi_disabled": acc.get("terminal_tradeapi_disabled"),
+                        "autopilot_enabled": self.autopilot_enabled,
+                        "magic_number": self.magic_number,
+                        "config": self.get_sanitized_config(),
+                        "timestamp": datetime.datetime.now().isoformat()
+                    }
+                self.wine_bridge_ok = False
+                self.is_cloud_mode = True
+
         if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
-            if self.is_bridge_online() and isinstance(self.bridge_account, dict):
-                acc_copy = dict(self.bridge_account)
-                acc_copy["live_broker_attached"] = True
-                acc_copy["mode"] = "WINDOWS_BRIDGE_MT5"
-                return acc_copy
             c_bal = float(getattr(self, "cloud_balance", 100.0))
             active_list = self.get_live_positions()
             floating_pnl = sum(float(p.get("profit", 0.0)) for p in active_list)
             return {
                 "connected": True,
                 "live_broker_attached": False,
-                "mode": "STANDBY_DISCONNECTED",
+                "mode": "STANDBY_WARMING_UP",
                 "login": str(self.creds.get("login", 57452535486)),
                 "name": "Mohammad Nekookar",
                 "company": "GTC Global Trade Capital Co. Limited",
@@ -866,7 +872,17 @@ class MT5CockpitEngine:
         pip_unit = 0.01 if is_jpy else 0.0001
 
         rates = None
-        if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
+        if self.use_wine_bridge and self.wine_bridge_ok:
+            si_resp = wine_bridge_get("/symbol_info", {"symbol": symbol}, timeout=3.0)
+            if si_resp and si_resp.get("symbol_info"):
+                s_d = si_resp["symbol_info"]
+                digits = int(s_d.get("digits", digits))
+                point = float(s_d.get("point", point))
+                pip_unit = point * (10 if digits in (3, 5) else 1)
+            c_resp = wine_bridge_get("/candles", {"symbol": symbol, "timeframe": "H4", "count": 30}, timeout=3.5)
+            if c_resp and len(c_resp.get("bars") or []) >= 15:
+                rates = c_resp["bars"]
+        elif not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
             try:
                 s_info = mt5.symbol_info(symbol)
                 if s_info:
@@ -953,8 +969,53 @@ class MT5CockpitEngine:
         }
 
     def get_live_positions(self) -> list:
-        if getattr(self, "is_cloud_mode", False) and self.is_bridge_online():
-            return list(self.bridge_positions or [])
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok:
+                self.try_attach_wine_mt5()
+            if self.wine_bridge_ok:
+                resp = wine_bridge_get("/positions", timeout=3.5)
+                if resp and resp.get("connected"):
+                    result = []
+                    for pos in resp.get("positions", []):
+                        ticket = pos["ticket"]
+                        symbol = pos["symbol"]
+                        pos_type = "BUY" if int(pos["type"]) == 0 else "SELL"
+                        open_price = float(pos["price_open"])
+                        curr_price = float(pos["price_current"])
+                        sl = float(pos["sl"])
+                        tp = float(pos["tp"])
+                        vol = float(pos["volume"])
+                        profit = round(float(pos["profit"]), 2)
+                        swap = round(float(pos["swap"]), 2)
+                        digits = int(pos.get("digits", 3 if "JPY" in symbol else 5))
+                        point = float(pos.get("point", 0.001 if "JPY" in symbol else 0.00001))
+                        pip_unit = point * (10 if digits in (3, 5) else 1)
+                        pips_profit = (curr_price - open_price) / pip_unit if pos_type == "BUY" else (open_price - curr_price) / pip_unit
+                        sl_dist = abs(open_price - sl) if sl > 0 else 0
+                        r_multiple = round(((curr_price - open_price) if pos_type == "BUY" else (open_price - curr_price)) / sl_dist, 2) if sl_dist > 0 else 0.0
+                        result.append({
+                            "ticket": ticket,
+                            "symbol": symbol,
+                            "type": pos_type,
+                            "action": pos_type,
+                            "volume": vol,
+                            "open_price": round(open_price, digits),
+                            "price_open": round(open_price, digits),
+                            "current_price": round(curr_price, digits),
+                            "price_current": round(curr_price, digits),
+                            "sl": round(sl, digits),
+                            "tp": round(tp, digits),
+                            "swap": swap,
+                            "profit": profit,
+                            "pips_profit": round(pips_profit, 1),
+                            "r_multiple": r_multiple,
+                            "status": "OPEN",
+                            "comment": pos.get("comment", ""),
+                            "magic": pos.get("magic", 0),
+                            "time": datetime.datetime.fromtimestamp(int(pos["time"])).strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                    return result
+
         result = []
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
             try:
@@ -1059,21 +1120,26 @@ class MT5CockpitEngine:
         return result
 
     def get_account_performance(self) -> dict:
-        if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+        deals = None
+        if self.use_wine_bridge and self.wine_bridge_ok:
+            resp = wine_bridge_get("/history_deals", {"days": 90}, timeout=5.0)
+            if resp and resp.get("connected"):
+                deals = resp.get("deals", [])
+        elif not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None:
+            if not self.ensure_connected():
+                return {
+                    "win_rate": 0.0, "profit_factor": 0.0, "total_trades": 0,
+                    "net_profit": 0.0, "trades": [], "equity_curve": []
+                }
+            now = datetime.datetime.now()
+            from_date = now - datetime.timedelta(days=90)
+            raw_deals = mt5.history_deals_get(from_date, now)
+            deals = [d._asdict() for d in (raw_deals or [])]
+        else:
             return {
                 "win_rate": 68.4, "profit_factor": 2.85, "total_trades": 46,
                 "net_profit": 3480.0, "trades": [], "equity_curve": []
             }
-
-        if not self.ensure_connected():
-            return {
-                "win_rate": 0.0, "profit_factor": 0.0, "total_trades": 0,
-                "net_profit": 0.0, "trades": [], "equity_curve": []
-            }
-
-        now = datetime.datetime.now()
-        from_date = now - datetime.timedelta(days=90)
-        deals = mt5.history_deals_get(from_date, now)
 
         if not deals:
             return {
@@ -1089,9 +1155,8 @@ class MT5CockpitEngine:
         running_equity = 100.0
         equity_curve = []
 
-        for d in deals:
-            deal = d._asdict()
-            profit = deal.get("profit", 0.0)
+        for deal in deals:
+            profit = float(deal.get("profit", 0.0))
             if deal.get("entry") == 1:
                 if profit > 0:
                     wins += 1
@@ -1200,7 +1265,38 @@ class MT5CockpitEngine:
 
     def get_real_candles(self, symbol: str, timeframe: str = "D1", count: int = 60) -> list:
         symbol = symbol.upper()
-        # 1. If native MT5 is connected, query MT5 directly
+        # 1. If connected via Wine HTTP bridge (Linux/Railway), query Wine bridge directly
+        if self.use_wine_bridge and self.wine_bridge_ok:
+            resp = wine_bridge_get("/candles", {"symbol": symbol, "timeframe": timeframe.upper(), "count": count}, timeout=4.0)
+            bars = (resp or {}).get("bars") or []
+            if bars:
+                res = []
+                ema20 = float(bars[0]["close"])
+                ema50 = float(bars[0]["close"])
+                k20, k50 = 2.0 / 21.0, 2.0 / 51.0
+                total_n = len(bars)
+                dec = int(resp.get("digits", 3 if "JPY" in symbol else 5))
+                dt_format = "%Y-%m-%d" if timeframe.upper() in ("D1", "W1") else "%Y-%m-%d %H:%M"
+                for idx, r in enumerate(bars):
+                    cl = float(r["close"])
+                    ema20 = cl * k20 + ema20 * (1.0 - k20)
+                    ema50 = cl * k50 + ema50 * (1.0 - k50)
+                    dt = datetime.datetime.fromtimestamp(int(r["time"]), datetime.timezone.utc).strftime(dt_format)
+                    res.append({
+                        "daysAgo": total_n - 1 - idx,
+                        "date": dt,
+                        "time": dt,
+                        "open": round(float(r["open"]), dec),
+                        "high": round(float(r["high"]), dec),
+                        "low": round(float(r["low"]), dec),
+                        "close": round(cl, dec),
+                        "ema20": round(ema20, dec),
+                        "ema50": round(ema50, dec),
+                        "volume": int(r.get("tick_volume", 0))
+                    })
+                return res
+
+        # 2. If native Windows MT5 is connected, query MT5 directly
         if HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
             try:
                 mt5.symbol_select(symbol, True)
@@ -1273,8 +1369,15 @@ class MT5CockpitEngine:
             "candles": {}
         }
 
-        # 1. Native MT5 sync if connected
-        if HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
+        # 1. Wine HTTP bridge sync if connected (Linux/Railway)
+        if self.use_wine_bridge and self.wine_bridge_ok:
+            wb = wine_bridge_get("/all_candles_28", {"count": count}, timeout=25.0)
+            if wb and wb.get("connected") and len(wb.get("candles") or {}) >= 15:
+                output["rates"] = wb.get("rates", {})
+                output["candles"] = wb.get("candles", {})
+
+        # 2. Native Windows MT5 sync if connected
+        elif HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
             for p in self.STANDARD_28_PAIRS:
                 try:
                     mt5.symbol_select(p, True)
@@ -1332,167 +1435,138 @@ class MT5CockpitEngine:
 
         return output
 
-    def ensure_wine_algotrading_enabled(self):
-        """Ensure Algo Trading (Ctrl+E) is enabled in headless Wine MT5 via Win32 user32 inside Wine."""
-        if sys.platform == "win32" or getattr(self, "rpyc_conn", None) is None:
-            return
-        try:
-            with self.mt5_rpc_lock:
-                self.rpyc_conn.execute("import MetaTrader5 as _mt5; _ti = _mt5.terminal_info(); _ta = bool(_ti.trade_allowed) if _ti else False; _tad = bool(_ti.tradeapi_disabled) if _ti else True")
-                trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
-                tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
-            if not trade_allowed or tradeapi_disabled:
-                win32_code = """
-import ctypes, time, MetaTrader5 as _mt5
-user32 = ctypes.windll.user32
-WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
-_wins = []
-def _cb(hwnd, lparam):
-    if user32.IsWindowVisible(hwnd):
-        buf = ctypes.create_unicode_buffer(256)
-        user32.GetWindowTextW(hwnd, buf, 256)
-        if buf.value:
-            _wins.append((hwnd, buf.value))
-    return True
-user32.EnumWindows(WNDENUMPROC(_cb), 0)
-_target = None
-for h, title in _wins:
-    if '57452535486' in title or 'GTC' in title or 'MetaTrader' in title:
-        _target = (h, title)
-        break
-if _target:
-    user32.ShowWindow(_target[0], 9)
-    user32.SetForegroundWindow(_target[0])
-    time.sleep(0.2)
-    user32.keybd_event(0x11, 0, 0, 0)
-    user32.keybd_event(0x45, 0, 0, 0)
-    time.sleep(0.05)
-    user32.keybd_event(0x45, 0, 2, 0)
-    user32.keybd_event(0x11, 0, 2, 0)
-    time.sleep(0.5)
-_ti = _mt5.terminal_info()
-_ta = bool(_ti.trade_allowed) if _ti else False
-_tad = bool(_ti.tradeapi_disabled) if _ti else True
-_win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
-"""
-                with self.mt5_rpc_lock:
-                    self.rpyc_conn.execute(win32_code)
-                    trade_allowed = bool(self.rpyc_conn.namespace.get("_ta", False))
-                    tradeapi_disabled = bool(self.rpyc_conn.namespace.get("_tad", True))
-                    win_dbg = str(self.rpyc_conn.namespace.get("_win_dbg", ""))
-                self.log_event(f"⚡ [Wine MT5 Win32 Ctrl+E] win={win_dbg} -> trade_allowed={trade_allowed}, tradeapi_disabled={tradeapi_disabled}")
-        except Exception as e:
-            self.log_event(f"⚠️ Wine AlgoTrading toggle notice: {e}")
-
     def _mt5_order_send(self, request: dict):
-        """Send an MT5 trade request safely across native Windows or remote RPyC Wine."""
-        if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
-            self.ensure_wine_algotrading_enabled()
-        with self.mt5_rpc_lock:
-            if sys.platform != "win32" and getattr(self, "rpyc_conn", None) is not None:
-                import types
-                req_json = json.dumps(request)
-                code = (
-                    "import json, MetaTrader5 as _mt5\n"
-                    f"_req = json.loads({req_json!r})\n"
-                    "_res = _mt5.order_send(_req)\n"
-                    "if _res is None:\n"
-                    "    _out = json.dumps({'__none__': True, 'last_error': list(_mt5.last_error())})\n"
-                    "else:\n"
-                    "    _out = json.dumps({'retcode': int(getattr(_res, 'retcode', 0)), 'order': int(getattr(_res, 'order', 0)), 'deal': int(getattr(_res, 'deal', 0)), 'comment': str(getattr(_res, 'comment', ''))})\n"
-                )
-                self.rpyc_conn.execute(code)
-                out_data = json.loads(self.rpyc_conn.namespace["_out"])
-                if out_data.get("__none__"):
-                    self.last_order_error = f"mt5.order_send returned None (last_error={out_data.get('last_error')})"
-                    self.log_event(f"⚠️ {self.last_order_error}")
-                    return None
-                return types.SimpleNamespace(**out_data)
-
-            result = mt5.order_send(request)
-            if result is None:
-                try:
-                    last_err = mt5.last_error()
-                    self.last_order_error = f"mt5.order_send returned None (last_error={last_err})"
-                    self.log_event(f"⚠️ {self.last_order_error}")
-                except Exception:
-                    pass
-            return result
+        """Send an MT5 trade request natively on Windows."""
+        if mt5 is None:
+            return None
+        result = mt5.order_send(request)
+        if result is None:
+            try:
+                last_err = mt5.last_error()
+                self.last_order_error = f"mt5.order_send returned None (last_error={last_err})"
+                self.log_event(f"⚠️ {self.last_order_error}")
+            except Exception:
+                pass
+        return result
 
     def execute_order(self, symbol: str, action: str, volume: float = 0.01, sl_pips: float = None, tp_pips: float = None) -> dict:
-        if not self.ensure_connected():
-            return {"success": False, "error": "MT5 Not Initialized"}
-
+        self.ensure_connected()
         symbol = symbol.upper()
-        is_buy = action.upper() == "BUY"
+        action = action.upper()
+        is_buy = action == "BUY"
         is_jpy = "JPY" in symbol
         digits = 3 if is_jpy else 5
         pip_unit = 0.01 if is_jpy else 0.0001
         price = None
-        s_info = None
 
-        if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
-            for attempt in range(2):
+        # === LINUX / RAILWAY PATH: Native Wine HTTP Bridge (http://127.0.0.1:18815) ===
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok:
+                self.try_attach_wine_mt5(force=True)
+            if not self.wine_bridge_ok:
+                err_text = "ترمینال متاتریدر ۵ داخل سرور ابری هنوز متصل نشده است. لطفاً چند ثانیه دیگر دوباره تلاش کنید."
+                self.last_order_error = "Wine MT5 HTTP bridge (:18815) not connected yet"
+                self.log_event(f"❌ Order Blocked: {self.last_order_error} for {action} {volume} {symbol}")
+                return {"success": False, "error": err_text, "mode": "DISCONNECTED", "detail": self.last_order_error}
+
+            si_resp = wine_bridge_get("/symbol_info", {"symbol": symbol}, timeout=4.0)
+            if si_resp and si_resp.get("symbol_info"):
+                s_d = si_resp["symbol_info"]
+                tick_d = si_resp.get("tick") or {}
+                digits = int(s_d.get("digits", digits))
+                point = float(s_d.get("point", 0.001 if is_jpy else 0.00001))
+                pip_unit = point * (10 if digits in (3, 5) else 1)
+                if tick_d:
+                    price = float(tick_d.get("ask") if is_buy else tick_d.get("bid"))
+            if price is None:
+                price = 1.10603 if "EUR" in symbol else (154.20 if is_jpy else 1.3000)
+
+            anti_hunt = self.compute_dynamic_anti_hunt(symbol, action, price)
+            sl = anti_hunt["sl"]
+            tp = anti_hunt["tp1"]
+            if sl_pips and sl_pips > 0:
+                sl = round(price - (sl_pips * pip_unit) if is_buy else price + (sl_pips * pip_unit), digits)
+            if tp_pips and tp_pips > 0:
+                tp = round(price + (tp_pips * pip_unit) if is_buy else price - (tp_pips * pip_unit), digits)
+
+            sl_dist = abs(price - sl) if sl > 0 else 0.0
+            tp_dist = abs(tp - price) if tp > 0 else 0.0
+
+            wb_res = wine_bridge_post("/order", {
+                "symbol": symbol,
+                "action": action,
+                "volume": float(volume),
+                "sl_dist": sl_dist,
+                "tp_dist": tp_dist,
+                "deviation": 20,
+                "magic": int(self.magic_number),
+                "comment": "QuantFX-AntiHunt v7.0",
+            }, timeout=20.0)
+            self.last_order_result = wb_res
+
+            if not wb_res:
+                self.wine_bridge_ok = False
+                self.last_order_error = "Wine MT5 HTTP bridge (:18815) did not respond"
+                self.log_event(f"❌ Order Failed: {self.last_order_error}")
+                return {"success": False, "error": "خطا در ارتباط با پل داخلی متاتریدر ۵ روی سرور ابری", "mode": "DISCONNECTED", "detail": self.last_order_error}
+
+            if wb_res.get("success"):
+                ticket = int(wb_res.get("order") or wb_res.get("deal") or 0)
+                price = float(wb_res.get("price", price))
+                sl = float(wb_res.get("sl", sl))
+                tp = float(wb_res.get("tp", tp))
+                digits = int(wb_res.get("digits", digits))
+                exec_mode = "LIVE_BROKER_MT5"
+                self.last_order_error = None
+                self.log_event(f"🎯 Execution Success (Wine Broker MT5): {action} {volume} {symbol} @ {price} | Order #{ticket} | SL: {sl} | TP: {tp} | filling={wb_res.get('used_filling')}")
+            else:
+                retcode = wb_res.get("retcode")
+                comment = wb_res.get("comment") or wb_res.get("error") or "Order rejected by broker"
+                ta = wb_res.get("terminal_trade_allowed")
+                tad = wb_res.get("terminal_tradeapi_disabled")
+                self.last_order_error = f"{comment} (retcode={retcode}, last_error={wb_res.get('last_error')}, trade_allowed={ta}, tradeapi_disabled={tad})"
+                self.log_event(f"❌ Wine Broker Order Rejection: {self.last_order_error} for {action} {volume} {symbol}")
+                err_text = f"بروکر سفارش را رد کرد: {comment} (کد خطا: {retcode})"
+                if retcode == 10027 or "AutoTrading" in str(comment):
+                    err_text = f"معاملات خودکار در متاتریدر سرور ابری مسدود است (کد 10027 | trade_allowed={ta}, tradeapi_disabled={tad})."
+                elif retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
+                    err_text = f"بازار فارکس در حال حاضر بسته است (Market is closed - Code {retcode}). معاملات در روزهای شنبه و یکشنبه روی جفت‌ارزهای فارکس بسته است و از بامداد دوشنبه بازگشایی می‌شود."
+                return {"success": False, "error": err_text, "retcode": retcode, "comment": str(comment), "detail": self.last_order_error}
+        else:
+            # === NATIVE WINDOWS PATH ===
+            s_info = None
+            if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
                 try:
-                    with self.mt5_rpc_lock:
-                        s_info = mt5.symbol_info(symbol)
-                        if not s_info:
-                            mt5.symbol_select(symbol, True)
-                            s_info = mt5.symbol_info(symbol)
-                        if s_info:
-                            if not s_info.visible:
-                                mt5.symbol_select(symbol, True)
-                            tick = mt5.symbol_info_tick(symbol)
-                            if tick:
-                                price = tick.ask if is_buy else tick.bid
-                                digits = s_info.digits
-                                pip_unit = s_info.point * (10 if digits in (3, 5) else 1)
-                    break
-                except Exception as e:
-                    self.last_order_error = f"symbol_info/tick error (attempt {attempt+1}): {e}"
-                    self.log_event(f"⚠️ {self.last_order_error}")
-                    if sys.platform != "win32" and attempt == 0:
-                        self.try_attach_wine_mt5(force=True)
-
-        if price is None:
-            if os.path.exists(CANDLES_FILE):
-                try:
-                    with open(CANDLES_FILE, "r", encoding="utf-8") as f:
-                        c_data = json.load(f)
-                        rates = c_data.get("rates", {})
-                        if symbol in rates:
-                            price = float(rates[symbol])
-                        elif symbol in c_data.get("candles", {}) and len(c_data["candles"][symbol]) > 0:
-                            price = float(c_data["candles"][symbol][-1]["close"])
-                except Exception:
-                    pass
-        if price is None:
-            price = 1.10603 if "EUR" in symbol else (154.20 if is_jpy else 1.3000)
-
-        # Dynamic Anti-Hunt SL & TP calculation
-        anti_hunt = self.compute_dynamic_anti_hunt(symbol, action, price)
-        sl = anti_hunt["sl"]
-        tp = anti_hunt["tp1"]
-
-        # Override if specific user requested
-        if sl_pips and sl_pips > 0:
-            sl = round(price - (sl_pips * pip_unit) if is_buy else price + (sl_pips * pip_unit), digits)
-        if tp_pips and tp_pips > 0:
-            tp = round(price + (tp_pips * pip_unit) if is_buy else price - (tp_pips * pip_unit), digits)
-
-        result = None
-        if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None or s_info is None:
-            self.ensure_connected()
-            if HAS_MT5_LIB and mt5 and s_info is None:
-                try:
-                    mt5.symbol_select(symbol, True)
                     s_info = mt5.symbol_info(symbol)
-                except Exception:
-                    pass
+                    if not s_info:
+                        mt5.symbol_select(symbol, True)
+                        s_info = mt5.symbol_info(symbol)
+                    if s_info:
+                        if not s_info.visible:
+                            mt5.symbol_select(symbol, True)
+                        tick = mt5.symbol_info_tick(symbol)
+                        if tick:
+                            price = tick.ask if is_buy else tick.bid
+                            digits = s_info.digits
+                            pip_unit = s_info.point * (10 if digits in (3, 5) else 1)
+                except Exception as e:
+                    self.last_order_error = f"symbol_info/tick error: {e}"
+                    self.log_event(f"⚠️ {self.last_order_error}")
 
-        if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 and s_info:
-            try:
-                with self.mt5_rpc_lock:
+            if price is None:
+                price = 1.10603 if "EUR" in symbol else (154.20 if is_jpy else 1.3000)
+
+            anti_hunt = self.compute_dynamic_anti_hunt(symbol, action, price)
+            sl = anti_hunt["sl"]
+            tp = anti_hunt["tp1"]
+            if sl_pips and sl_pips > 0:
+                sl = round(price - (sl_pips * pip_unit) if is_buy else price + (sl_pips * pip_unit), digits)
+            if tp_pips and tp_pips > 0:
+                tp = round(price + (tp_pips * pip_unit) if is_buy else price - (tp_pips * pip_unit), digits)
+
+            result = None
+            if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 and s_info:
+                try:
                     order_type = mt5.ORDER_TYPE_BUY if is_buy else mt5.ORDER_TYPE_SELL
                     filling_mode = getattr(s_info, 'filling_mode', 2)
                     filling = mt5.ORDER_FILLING_IOC if (filling_mode & 2) else (mt5.ORDER_FILLING_FOK if (filling_mode & 1) else mt5.ORDER_FILLING_RETURN)
@@ -1511,49 +1585,30 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                         "type_filling": int(filling),
                     }
                     result = self._mt5_order_send(request)
-            except Exception as e:
-                self.last_order_error = f"order_send exception: {e}"
-                self.log_event(f"⚠️ Native MT5 send notice: {e}")
+                except Exception as e:
+                    self.last_order_error = f"order_send exception: {e}"
+                    self.log_event(f"⚠️ Native MT5 send notice: {e}")
 
-        # If native execution was attempted on MT5
-        if result is not None:
-            retcode = getattr(result, "retcode", 0)
-            if retcode == getattr(mt5, "TRADE_RETCODE_DONE", 10009):
-                ticket = getattr(result, "order", getattr(result, "deal", 0))
-                exec_mode = "LIVE_BROKER_MT5"
-                self.log_event(f"🎯 Execution Success (Broker MT5): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic SL: {sl}")
+            if result is not None:
+                retcode = getattr(result, "retcode", 0)
+                if retcode == getattr(mt5, "TRADE_RETCODE_DONE", 10009):
+                    ticket = getattr(result, "order", getattr(result, "deal", 0))
+                    exec_mode = "LIVE_BROKER_MT5"
+                    self.log_event(f"🎯 Execution Success (Broker MT5): {action} {volume} {symbol} @ {price} | Order #{ticket} | Dynamic SL: {sl}")
+                else:
+                    comment = getattr(result, "comment", "Order rejected by broker")
+                    self.log_event(f"❌ Real Broker Order Rejection: {comment} (Retcode: {retcode}) for {action} {volume} {symbol}")
+                    err_text = f"بروکر سفارش را رد کرد: {comment} (کد خطا: {retcode})"
+                    if retcode == 10027 or "AutoTrading disabled" in str(comment) or "AutoTrading" in str(comment):
+                        err_text = "دکمه معاملات خودکار (Algo Trading) در نرم‌افزار متاتریدر ۵ خاموش است (کد خطا: 10027)."
+                    elif retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
+                        err_text = f"بازار فارکس در حال حاضر بسته است (Market is closed - Code {retcode})."
+                    return {"success": False, "error": err_text, "retcode": retcode, "comment": str(comment)}
             else:
-                comment = getattr(result, "comment", "Order rejected by broker")
-                self.log_event(f"❌ Real Broker Order Rejection: {comment} (Retcode: {retcode}) for {action} {volume} {symbol}")
-                err_text = f"بروکر سفارش را رد کرد: {comment} (کد خطا: {retcode})"
-                if retcode == 10027 or "AutoTrading disabled" in str(comment) or "AutoTrading" in str(comment):
-                    err_text = "دکمه معاملات خودکار (Algo Trading) در نرم‌افزار متاتریدر ۵ خاموش است (کد خطا: 10027). لطفاً در بالای پنجره متاتریدر ۵ روی دکمه 'Algo Trading' کلیک فرمایید تا سبز شود (یا کلیدهای ترکیبی Ctrl+E را فشار دهید) تا سفارشات در متاتریدر ثبت شوند."
-                elif retcode == 10018 or "Market is closed" in str(comment) or "Market closed" in str(comment):
-                    err_text = f"بازار فارکس در حال حاضر بسته است (Market is closed - Code {retcode}). معاملات در روزهای شنبه و یکشنبه روی جفت‌ارزهای فارکس بسته است و از بامداد دوشنبه بازگشایی می‌شود."
-                return {
-                    "success": False,
-                    "error": err_text,
-                    "retcode": retcode,
-                    "comment": str(comment)
-                }
-        else:
-            if self.is_bridge_online():
-                return self.dispatch_to_bridge("ORDER", {
-                    "symbol": symbol,
-                    "action": action,
-                    "volume": float(volume),
-                    "sl_pips": sl_pips,
-                    "tp_pips": tp_pips
-                })
-            detail = f" ({self.last_order_error})" if getattr(self, "last_order_error", None) else (" (s_info=None)" if s_info is None else "")
-            err_text = f"خطا در ثبت سفارش: ترمینال متاتریدر ۵ بروکر GTC متصل نیست یا در حالت آفلاین است{detail}! لطفاً فایل run_mt5_live_windows.bat را روی ویندوز خود اجرا کنید (و Ctrl+E را در متاتریدر بزنید) تا سفارشات مستقیماً در بروکر ثبت شوند."
-            self.log_event(f"❌ Order Blocked: MT5 disconnected{detail}. Refusing simulated fill for {action} {volume} {symbol}")
-            return {
-                "success": False,
-                "error": err_text,
-                "mode": "DISCONNECTED",
-                "detail": self.last_order_error
-            }
+                detail = f" ({self.last_order_error})" if getattr(self, "last_order_error", None) else (" (s_info=None)" if s_info is None else "")
+                err_text = f"خطا در ثبت سفارش: ترمینال متاتریدر ۵ متصل نیست{detail}."
+                self.log_event(f"❌ Order Blocked: MT5 disconnected{detail} for {action} {volume} {symbol}")
+                return {"success": False, "error": err_text, "mode": "DISCONNECTED", "detail": self.last_order_error}
 
         # Generate chart photo & dispatch Telegram Photo + Message asynchronously in background
         chart_path = os.path.join(LOGS_DIR, f"chart_{symbol}_{ticket}.png")
@@ -1589,11 +1644,26 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
         return {"success": True, "status": "SUCCESS", "ticket": ticket, "order": ticket, "deal": ticket, "symbol": symbol, "action": action, "volume": volume, "price": price, "sl": sl, "tp": tp, "mode": exec_mode}
 
     def close_position(self, ticket: int, reason: str = "خروج دستی کاربر") -> dict:
-        if getattr(self, "is_cloud_mode", False) and self.is_bridge_online():
-            return self.dispatch_to_bridge("CLOSE", {"ticket": ticket, "reason": reason})
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok:
+                self.try_attach_wine_mt5(force=True)
+            if not self.wine_bridge_ok:
+                return {"success": False, "error": "Wine MT5 bridge is offline"}
+            res = wine_bridge_post("/close", {"ticket": int(ticket), "magic": int(self.magic_number), "comment": "QuantFX-Close"}, timeout=20.0)
+            if not res or not res.get("success"):
+                return {"success": False, "error": (res or {}).get("error") or (res or {}).get("comment") or "Failed to close position"}
+            pos = res.get("position") or {}
+            pos_ticket = int(res.get("ticket", ticket))
+            close_price = float(res.get("close_price", 0.0))
+            self.tracked_positions.pop(pos_ticket, None)
+            self.save_tracked_positions()
+            self.log_event(f"🔒 Position Closed (Wine MT5): #{pos_ticket} ({pos.get('symbol')}) @ {close_price}")
+            threading.Thread(target=self.handle_closed_trade_alert, args=(pos_ticket, pos, close_price, reason, None), daemon=True).start()
+            return {"success": True, "ticket": pos_ticket, "close_price": close_price}
+
         if not self.ensure_connected():
             return {"success": False, "error": "MT5 Not Initialized"}
-        
+
         pos = None
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
             try:
@@ -1607,7 +1677,6 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
             pos = self.tracked_positions[ticket]
 
         if not pos:
-            # Check any tracked position if single trade test
             if len(self.tracked_positions) == 1:
                 ticket = list(self.tracked_positions.keys())[0]
                 pos = self.tracked_positions[ticket]
@@ -1627,19 +1696,8 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                 pass
 
         if close_price is None:
-            if os.path.exists(CANDLES_FILE):
-                try:
-                    with open(CANDLES_FILE, "r", encoding="utf-8") as f:
-                        c_data = json.load(f)
-                        rates = c_data.get("rates", {})
-                        if symbol in rates:
-                            close_price = float(rates[symbol])
-                except Exception:
-                    pass
-        if close_price is None:
             close_price = pos.get("price_open", 1.10603)
 
-        # Attempt native close if position exists in MT5
         if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
             try:
                 close_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
@@ -1660,7 +1718,6 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
             except Exception:
                 pass
 
-        # Compute accurate PnL
         is_jpy = "JPY" in symbol
         pip_unit = 0.01 if is_jpy else 0.0001
         open_price = pos.get("price_open", close_price)
@@ -1669,8 +1726,6 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
         pip_val = 10.0 * (vol / 1.0)
         net_pnl = round(pips * pip_val, 2)
 
-        self.cloud_balance = round(getattr(self, "cloud_balance", 100.0) + net_pnl, 2)
-        self.cloud_equity = self.cloud_balance
         if ticket in self.tracked_positions:
             del self.tracked_positions[ticket]
             self.save_tracked_positions()
@@ -1692,7 +1747,12 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
 
             # Query MT5 deal history for exact dollar profit if available
             if net_pnl is None:
-                if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
+                if self.use_wine_bridge and self.wine_bridge_ok:
+                    d_resp = wine_bridge_get("/history_deals", {"position": int(ticket)}, timeout=4.0)
+                    deals = (d_resp or {}).get("deals") or []
+                    if deals:
+                        net_pnl = sum(float(d.get("profit", 0.0)) + float(d.get("commission", 0.0)) + float(d.get("swap", 0.0)) for d in deals)
+                elif not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
                     try:
                         now = datetime.datetime.now()
                         from_t = now - datetime.timedelta(hours=24)
@@ -1706,14 +1766,21 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
 
             pips = (close_price - open_price) / pip_unit if pos_type == "BUY" else (open_price - close_price) / pip_unit
 
-            acc = None
-            if not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
+            new_bal = getattr(self, "cloud_balance", 100.0)
+            new_eq = getattr(self, "cloud_equity", new_bal)
+            if self.use_wine_bridge and self.wine_bridge_ok:
+                acc_d = wine_bridge_get("/account", timeout=3.0)
+                if acc_d and acc_d.get("connected"):
+                    new_bal = float(acc_d.get("balance", new_bal))
+                    new_eq = float(acc_d.get("equity", new_eq))
+            elif not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5:
                 try:
                     acc = mt5.account_info()
+                    if acc:
+                        new_bal = acc.balance
+                        new_eq = acc.equity
                 except Exception:
                     pass
-            new_bal = acc.balance if acc else getattr(self, "cloud_balance", 100.0)
-            new_eq = acc.equity if acc else getattr(self, "cloud_equity", new_bal)
 
             pnl_sign = "+" if net_pnl >= 0 else "-"
             pnl_str = f"{pnl_sign}${abs(net_pnl):.2f} USD"
@@ -1743,6 +1810,27 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
             print(f"[Closed Alert Dispatch Error] {e}", flush=True)
 
     def save_profit_and_breakeven(self, ticket: int) -> dict:
+        if self.use_wine_bridge:
+            if not self.wine_bridge_ok:
+                return {"success": False, "error": "Wine MT5 bridge offline"}
+            p_resp = wine_bridge_get("/positions", timeout=4.0)
+            pos = next((p for p in (p_resp or {}).get("positions", []) if int(p["ticket"]) == int(ticket)), None)
+            if not pos:
+                return {"success": False, "error": f"Position #{ticket} not found"}
+            open_price = float(pos["price_open"])
+            is_buy = int(pos["type"]) == 0
+            digits = int(pos.get("digits", 3 if "JPY" in pos["symbol"] else 5))
+            point = float(pos.get("point", 0.001 if "JPY" in pos["symbol"] else 0.00001))
+            pip_unit = point * (10 if digits in (3, 5) else 1)
+            part_vol = round(float(pos["volume"]) * 0.5, 2)
+            if part_vol >= 0.01:
+                wine_bridge_post("/close", {"ticket": int(ticket), "fraction": 0.5, "magic": int(self.magic_number), "comment": "QuantFX-SaveProfit-50%"}, timeout=15.0)
+            be_sl = round(open_price + (2.0 * pip_unit if is_buy else -2.0 * pip_unit), digits)
+            wine_bridge_post("/modify_sltp", {"ticket": int(ticket), "symbol": pos["symbol"], "sl": be_sl, "tp": float(pos["tp"])}, timeout=15.0)
+            self.managed_positions_state[ticket] = {'be_set': True, 'tp1_banked': True}
+            self.log_event(f"🛡️ Position Secured (Wine MT5): #{ticket} ({pos['symbol']}) - Breakeven SL locked @ {be_sl}")
+            return {"success": True, "message": "Profit secured & Breakeven set"}
+
         if not self.ensure_connected():
             return {"success": False, "error": "MT5 Not Initialized"}
         positions = mt5.positions_get(ticket=ticket)
@@ -1751,10 +1839,8 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
 
         pos = positions[0]._asdict()
         open_price = pos["price_open"]
-        curr_price = pos["price_current"]
         is_buy = pos["type"] == 0
 
-        # Close 50% partial
         part_vol = round(pos["volume"] * 0.5, 2)
         if part_vol >= 0.01:
             tick = mt5.symbol_info_tick(pos["symbol"])
@@ -1776,7 +1862,6 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                 }
                 self._mt5_order_send(req)
 
-        # Move SL to Breakeven + 2 pips buffer (securing spread & commission)
         s_info = mt5.symbol_info(pos["symbol"])
         digits = s_info.digits if s_info else 5
         point = s_info.point if s_info else 0.0001
@@ -1790,7 +1875,7 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
             "sl": float(be_sl),
             "tp": float(pos["tp"])
         }
-        res = self._mt5_order_send(sl_req)
+        self._mt5_order_send(sl_req)
 
         self.managed_positions_state[ticket] = {'be_set': True, 'tp1_banked': True}
         self.log_event(f"🛡️ Position Secured: #{ticket} ({pos['symbol']}) - 50% Profit Banked + Breakeven SL locked @ {be_sl}")
@@ -1812,13 +1897,16 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
         while True:
             try:
                 time.sleep(3)
-                if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+                if self.use_wine_bridge and not self.wine_bridge_ok:
+                    self.try_attach_wine_mt5()
+                elif not self.use_wine_bridge and (getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None):
                     self.ensure_connected()
 
                 if not self.autopilot_enabled:
                     continue
 
-                if getattr(self, "is_cloud_mode", False) or not HAS_MT5_LIB or mt5 is None:
+                is_live_broker = self.wine_bridge_ok if self.use_wine_bridge else (not getattr(self, "is_cloud_mode", False) and HAS_MT5_LIB and mt5 is not None)
+                if not is_live_broker:
                     summary = self.get_account_summary()
                     positions = self.get_live_positions()
                     perf = self.get_account_performance()
@@ -1835,9 +1923,6 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                             json.dump(perf, f, indent=2)
                     except Exception:
                         pass
-                    continue
-
-                if not self.ensure_connected():
                     continue
 
                 summary = self.get_account_summary()
@@ -1863,20 +1948,23 @@ _win_dbg = str(_target) if _target else str([t for _, t in _wins[:5]])
                 for t, p_data in current_tickets.items():
                     if t not in self.tracked_positions:
                         self.tracked_positions[t] = p_data
-                        # If SL not set, apply dynamic Anti-Hunt SL automatically!
                         if p_data.get("sl", 0) <= 0:
-                            s_info = mt5.symbol_info(p_data["symbol"])
-                            if s_info:
-                                anti = self.compute_dynamic_anti_hunt(p_data["symbol"], p_data["type"], p_data["open_price"])
-                                sl_req = {
-                                    "action": int(mt5.TRADE_ACTION_SLTP),
-                                    "position": int(t),
-                                    "symbol": str(p_data["symbol"]),
-                                    "sl": float(anti["sl"]),
-                                    "tp": float(anti["tp1"])
-                                }
-                                self._mt5_order_send(sl_req)
+                            anti = self.compute_dynamic_anti_hunt(p_data["symbol"], p_data["type"], p_data["open_price"])
+                            if self.use_wine_bridge:
+                                wine_bridge_post("/modify_sltp", {"ticket": int(t), "symbol": p_data["symbol"], "sl": float(anti["sl"]), "tp": float(anti["tp1"])}, timeout=10.0)
                                 self.log_event(f"🛡️ Auto-applied Dynamic Anti-Hunt SL for #{t} ({p_data['symbol']}): SL={anti['sl']}, TP={anti['tp1']}")
+                            elif mt5 is not None:
+                                s_info = mt5.symbol_info(p_data["symbol"])
+                                if s_info:
+                                    sl_req = {
+                                        "action": int(mt5.TRADE_ACTION_SLTP),
+                                        "position": int(t),
+                                        "symbol": str(p_data["symbol"]),
+                                        "sl": float(anti["sl"]),
+                                        "tp": float(anti["tp1"])
+                                    }
+                                    self._mt5_order_send(sl_req)
+                                    self.log_event(f"🛡️ Auto-applied Dynamic Anti-Hunt SL for #{t} ({p_data['symbol']}): SL={anti['sl']}, TP={anti['tp1']}")
 
                 # 2. Detect Closed Positions
                 tracked_keys = list(self.tracked_positions.keys())
@@ -2214,8 +2302,8 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
             except Exception as ex:
                 ps_out = str(ex)
             term_log = ""
-            srv_log = ""
-            for p, name in [("/tmp/mt5_terminal.log", "term"), ("/tmp/mt5_server.log", "srv")]:
+            bridge_log = ""
+            for p, name in [("/tmp/mt5_terminal.log", "term"), ("/tmp/mt5_wine_bridge.log", "bridge")]:
                 if os.path.exists(p):
                     try:
                         with open(p, "r", encoding="utf-8", errors="replace") as lf:
@@ -2223,22 +2311,25 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
                             if name == "term":
                                 term_log = txt
                             else:
-                                srv_log = txt
+                                bridge_log = txt
                     except Exception:
                         pass
+            wb_health = wine_bridge_get("/health", timeout=2.5) if self.engine.use_wine_bridge else None
             dbg = {
                 "platform": sys.platform,
+                "mode": "wine_http_bridge" if self.engine.use_wine_bridge else "native_win32",
                 "is_connected": self.engine.is_connected,
                 "is_cloud_mode": getattr(self.engine, "is_cloud_mode", None),
-                "has_mt5_lib": HAS_MT5_LIB,
-                "rpyc_conn_closed": getattr(getattr(self.engine, "rpyc_conn", None), "closed", "no_conn"),
-                "port_18812_open": is_port_open("127.0.0.1", 18812, timeout=0.3),
+                "wine_bridge_ok": getattr(self.engine, "wine_bridge_ok", False),
+                "wine_bridge_url": WINE_BRIDGE_URL if self.engine.use_wine_bridge else None,
+                "wine_bridge_health": wb_health,
                 "last_connect_error": self.engine.last_connect_error,
                 "last_order_error": getattr(self.engine, "last_order_error", None),
+                "last_order_result": getattr(self.engine, "last_order_result", None),
                 "events": self.engine.event_logs[-20:],
-                "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5server", "xvfb", "python", "java"))],
+                "mt5_processes": [line for line in ps_out.splitlines() if any(k in line.lower() for k in ("wine", "terminal64", "mt5_wine_bridge", "xvfb", "openbox", "python", "java"))],
                 "mt5_terminal_log": term_log,
-                "mt5_server_log": srv_log
+                "mt5_wine_bridge_log": bridge_log
             }
             self._set_cors_headers()
             self.wfile.write(json.dumps(dbg, ensure_ascii=False).encode("utf-8"))
@@ -2462,10 +2553,11 @@ class MT5CockpitRequestHandler(BaseHTTPRequestHandler):
 
 def run_server():
     engine = MT5CockpitEngine()
-    if not engine.connect():
-        print("[WARNING] Could not connect to MT5 on startup. Daemon will accept credentials via Web UI on Port 8085...", flush=True)
-
     MT5CockpitRequestHandler.engine = engine
+
+    # Bind HTTP server immediately so Railway/Java health probes on Port 8085 never time out
+    server = HTTPServer(("0.0.0.0", HTTP_PORT), MT5CockpitRequestHandler)
+    engine.connect()
 
     # 1. Position Lifecycle Monitor Thread
     t_mgmt = threading.Thread(target=engine.position_management_loop, daemon=True)
@@ -2473,7 +2565,7 @@ def run_server():
 
     # 2. Candlestick Synchronizer Thread
     def sync_candles_worker():
-        time.sleep(1)
+        time.sleep(2)
         engine.sync_all_28_pairs_candles(60)
         while True:
             time.sleep(60)
@@ -2487,71 +2579,23 @@ def run_server():
     t_bot = threading.Thread(target=telegram_bot_listener, args=(engine,), daemon=True)
     t_bot.start()
 
-    # 4. Optional Windows-to-Railway Cloud Bridge Relay
-    bridge_url = None
-    if "--bridge" in sys.argv:
-        idx = sys.argv.index("--bridge")
-        if idx + 1 < len(sys.argv):
-            bridge_url = sys.argv[idx + 1].rstrip("/")
-    elif os.environ.get("CLOUD_BRIDGE_URL"):
-        bridge_url = os.environ.get("CLOUD_BRIDGE_URL").rstrip("/")
-
-    if bridge_url and sys.platform == "win32":
-        def windows_bridge_worker():
-            import requests
-            print(f"🌉 [Windows MT5 Bridge] Relaying live GTC MT5 <-> {bridge_url}", flush=True)
-            while True:
-                try:
-                    acc = engine.get_account_summary()
-                    pos = engine.get_live_positions()
-                    r = requests.post(
-                        f"{bridge_url}/api/v1/market/mt5/bridge/poll",
-                        json={"account": acc, "positions": pos},
-                        timeout=6
-                    )
-                    if r.status_code == 200:
-                        cmds = r.json().get("commands", [])
-                        for cmd in cmds:
-                            cid = cmd.get("id")
-                            ctype = cmd.get("type")
-                            pl = cmd.get("payload", {})
-                            print(f"⚡ [Bridge Command] Executing {ctype}: {pl}", flush=True)
-                            if ctype == "ORDER":
-                                res = engine.execute_order(
-                                    pl.get("symbol", "EURUSD"),
-                                    pl.get("action", "BUY"),
-                                    float(pl.get("volume", 0.01)),
-                                    pl.get("sl_pips"),
-                                    pl.get("tp_pips")
-                                )
-                            elif ctype == "CLOSE":
-                                res = engine.close_position(int(pl.get("ticket", 0)), pl.get("reason", "Cloud Bridge Close"))
-                            else:
-                                res = {"success": False, "error": f"Unknown command {ctype}"}
-                            requests.post(
-                                f"{bridge_url}/api/v1/market/mt5/bridge/result",
-                                json={"id": cid, "result": res},
-                                timeout=6
-                            )
-                except Exception as ex:
-                    print(f"⚠️ [Bridge Poll Notice] {ex}", flush=True)
-                time.sleep(1.0)
-        threading.Thread(target=windows_bridge_worker, daemon=True).start()
-
-    server = HTTPServer(("0.0.0.0", HTTP_PORT), MT5CockpitRequestHandler)
     print("=" * 84, flush=True)
     print(" [FOREX INTELLIGENCE — MT5 LIVE COCKPIT DAEMON ONLINE]", flush=True)
     print(f" HTTP Micro-API:     http://127.0.0.1:{HTTP_PORT}", flush=True)
     print(f" Account Bridge:     GTC Global Trade Capital MT5 (#57452535486)", flush=True)
     print(f" Anti-Hunt Engine:   Dynamic ATR Buffer & Breakeven Protection Active", flush=True)
-    print(f" Interactive Bot:    Telegram Poller Active with 4 Glassmorphic Buttons", flush=True)
+    print(f" Interactive Bot:    Telegram Poller Active with Drawer Menu", flush=True)
     print("=" * 84, flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\nShutting down MT5 bridge...", flush=True)
+        print("\nShutting down MT5 cockpit daemon...", flush=True)
     finally:
-        mt5.shutdown()
+        if mt5 is not None:
+            try:
+                mt5.shutdown()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":

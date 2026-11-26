@@ -167,7 +167,7 @@ public class MarketDataController {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(25))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
                     .build();
@@ -198,7 +198,7 @@ public class MarketDataController {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://127.0.0.1:8085/api/mt5/status"))
-                    .timeout(Duration.ofSeconds(3))
+                    .timeout(Duration.ofSeconds(5))
                     .GET()
                     .build();
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -218,7 +218,7 @@ public class MarketDataController {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://127.0.0.1:8085/api/mt5/debug"))
-                    .timeout(Duration.ofSeconds(4))
+                    .timeout(Duration.ofSeconds(8))
                     .GET()
                     .build();
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -235,7 +235,7 @@ public class MarketDataController {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://127.0.0.1:8085/api/mt5/positions"))
-                    .timeout(Duration.ofSeconds(3))
+                    .timeout(Duration.ofSeconds(5))
                     .GET()
                     .build();
             HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -263,7 +263,7 @@ public class MarketDataController {
             String jsonPayload = objectMapper.writeValueAsString(payload);
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://127.0.0.1:8085/api/mt5/close"))
-                    .timeout(Duration.ofSeconds(15))
+                    .timeout(Duration.ofSeconds(25))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                     .build();
