@@ -98,11 +98,11 @@ if [ -n "$WINE_BIN" ]; then
       [ ! -f "$WINE_PY" ] && WINE_PY="python"
 
       launch_bridge() {
-          echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY})..." >> /tmp/mt5_wine_bridge.log
+          echo "⚡ Launching Native Wine Python MT5 HTTP Bridge on Port ${MT5_BRIDGE_PORT} (${WINE_PY}) via PTY at $(date -u +%FT%TZ)..." >> /tmp/mt5_wine_bridge.log
           (
               cd /app || exit 1
-              WINEDEBUG="-all" "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
-              echo "⚠️ [Exit] mt5_wine_bridge.py exited rc=$? at $(date -u +%FT%TZ)" >> /tmp/mt5_wine_bridge.log
+              PYTHONLEGACYWINDOWSSTDIO=1 PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1 WINEDEBUG=-all \
+              python3 -u /app/wine_pty.py "$WINE_BIN" "$WINE_PY" /app/mt5_wine_bridge.py --port "${MT5_BRIDGE_PORT}" >> /tmp/mt5_wine_bridge.log 2>&1
           ) &
       }
 
