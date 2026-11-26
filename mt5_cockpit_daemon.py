@@ -1363,25 +1363,58 @@ class MT5CockpitEngine:
         'NZDJPY', 'NZDCAD', 'NZDCHF', 'CADJPY', 'CADCHF', 'CHFJPY'
     ]
 
-    def get_mtf_candles_28(self, timeframe: str = "D1", count: int = 260, force: bool = False) -> dict:
-        """Fetches & caches 28-pair OHLC bars for D1, H4, H1, or M15 with non-blocking TTL."""
+    def get_mtf_candles_28(self, timeframe: str = "D1", count: int = 230, force: bool = False, pairs_subset=None, blocking: bool = False) -> dict:
+        """
+        Non-blocking MTF candle cache accessor & incremental updater.
+        Syncs only required pairs per timeframe pair-by-pair via /candles so one slow symbol never blocks others.
+        """
         tf_up = str(timeframe or "D1").upper()
         ttl_map = {"M15": 55, "H1": 175, "H4": 295, "D1": 895}
         ttl = ttl_map.get(tf_up, 300)
         now = time.time()
-        cached = self.mtf_candles.get(tf_up) or {}
-        if not force and len(cached) >= 20 and (now - self.mtf_last_sync.get(tf_up, 0.0)) < ttl:
+        cached = self.mtf_candles.setdefault(tf_up, {})
+
+        if not blocking and not force:
+            return cached
+        if not force and len(cached) >= (len(pairs_subset) if pairs_subset else 20) and (now - self.mtf_last_sync.get(tf_up, 0.0)) < ttl:
             return cached
 
+        target_pairs = list(pairs_subset) if pairs_subset else list(self.STANDARD_28_PAIRS)
         if self.use_wine_bridge and self.wine_bridge_ok:
-            wb = wine_bridge_get("/all_candles_28", {"timeframe": tf_up, "count": int(count)}, timeout=25.0)
-            if wb and wb.get("connected") and len(wb.get("candles") or {}) >= 15:
-                self.mtf_candles[tf_up] = wb["candles"]
-                self.mtf_last_sync[tf_up] = now
-                return self.mtf_candles[tf_up]
+            updated = 0
+            for sym in target_pairs:
+                resp = wine_bridge_get("/candles", {"symbol": sym, "timeframe": tf_up, "count": int(count)}, timeout=5.0)
+                bars_raw = (resp or {}).get("bars") or []
+                if bars_raw:
+                    res = []
+                    ema20 = float(bars_raw[0]["close"])
+                    ema50 = float(bars_raw[0]["close"])
+                    k20, k50 = 2.0 / 21.0, 2.0 / 51.0
+                    total_n = len(bars_raw)
+                    dec = int(resp.get("digits", 3 if "JPY" in sym else 5))
+                    dt_format = "%Y-%m-%d" if tf_up in ("D1", "W1") else "%Y-%m-%d %H:%M"
+                    for idx, r in enumerate(bars_raw):
+                        cl = float(r["close"])
+                        ema20 = cl * k20 + ema20 * (1.0 - k20)
+                        ema50 = cl * k50 + ema50 * (1.0 - k50)
+                        dt = datetime.datetime.fromtimestamp(int(r["time"]), datetime.timezone.utc).strftime(dt_format)
+                        res.append({
+                            "daysAgo": total_n - 1 - idx, "date": dt, "time": dt,
+                            "open": round(float(r["open"]), dec), "high": round(float(r["high"]), dec),
+                            "low": round(float(r["low"]), dec), "close": round(cl, dec),
+                            "ema20": round(ema20, dec), "ema50": round(ema50, dec),
+                            "volume": int(r.get("tick_volume", 0)),
+                        })
+                    cached[sym] = res
+                    if resp.get("bid") is not None and tf_up == "D1":
+                        self.cached_candles[sym] = resp["bid"]
+                    updated += 1
+                time.sleep(0.02)
+            if updated > 0:
+                self.mtf_last_sync[tf_up] = time.time()
         return cached
 
-    def sync_all_28_pairs_candles(self, count: int = 250) -> dict:
+    def sync_all_28_pairs_candles(self, count: int = 230) -> dict:
         output = {
             "updated_at": datetime.datetime.now().isoformat(),
             "source": "MetaTrader5 Institutional Feed",
@@ -1394,14 +1427,16 @@ class MT5CockpitEngine:
             "candles_m15": dict(self.mtf_candles.get("M15") or {}),
         }
 
-        # 1. Wine HTTP bridge sync if connected (Linux/Railway)
+        # 1. Incremental pair-by-pair sync via Wine HTTP bridge if attached
         if self.use_wine_bridge and self.wine_bridge_ok:
-            wb = wine_bridge_get("/all_candles_28", {"timeframe": "D1", "count": count}, timeout=25.0)
-            if wb and wb.get("connected") and len(wb.get("candles") or {}) >= 15:
-                output["rates"] = wb.get("rates", {})
-                output["candles"] = wb.get("candles", {})
-                self.mtf_candles["D1"] = output["candles"]
-                self.mtf_last_sync["D1"] = time.time()
+            d1_map = self.get_mtf_candles_28("D1", count=count, force=True, blocking=True)
+            if len(d1_map) >= 15:
+                output["candles"] = dict(d1_map)
+                for p, bars in d1_map.items():
+                    if p in self.cached_candles:
+                        output["rates"][p] = self.cached_candles[p]
+                    elif bars:
+                        output["rates"][p] = bars[-1]["close"]
 
         # 2. Native Windows MT5 sync if connected
         elif HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
@@ -2675,22 +2710,33 @@ def run_server():
 
     # 2. Multi-Timeframe (M15/H1/H4/D1) Candlestick & Market Structure Synchronizer Thread
     def sync_candles_worker():
-        time.sleep(2)
-        engine.sync_all_28_pairs_candles(250)
-        for tf in ("M15", "H1", "H4"):
-            time.sleep(0.5)
+        from strategy_playbook import PAIR_PLAYBOOK
+        m15_pairs = [p for p, c in PAIR_PLAYBOOK.items() if c["tf"] == "M15"]
+        h1_pairs = [p for p, c in PAIR_PLAYBOOK.items() if c["tf"] == "H1"]
+        h4_pairs = [p for p, c in PAIR_PLAYBOOK.items() if c["tf"] == "H4"]
+
+        # Wait up to 45s on boot so Wine MT5 attaches first before syncing live broker D1 bars!
+        for _ in range(45):
+            if not engine.use_wine_bridge or engine.wine_bridge_ok:
+                break
+            time.sleep(1)
+
+        engine.sync_all_28_pairs_candles(230)
+        for tf, subset in [("M15", m15_pairs), ("H1", h1_pairs), ("H4", h4_pairs)]:
             try:
-                engine.get_mtf_candles_28(tf, 260, force=True)
+                engine.get_mtf_candles_28(tf, 230, force=True, pairs_subset=subset, blocking=True)
             except Exception:
                 pass
+        engine.sync_all_28_pairs_candles(230)
+
         while True:
             time.sleep(60)
             try:
-                engine.get_mtf_candles_28("M15", 260)
-                engine.get_mtf_candles_28("H1", 260)
-                engine.get_mtf_candles_28("H4", 260)
-                if (time.time() - engine.mtf_last_sync.get("D1", 0.0)) >= 890:
-                    engine.sync_all_28_pairs_candles(250)
+                engine.get_mtf_candles_28("M15", 230, pairs_subset=m15_pairs, blocking=True)
+                engine.get_mtf_candles_28("H1", 230, pairs_subset=h1_pairs, blocking=True)
+                engine.get_mtf_candles_28("H4", 230, pairs_subset=h4_pairs, blocking=True)
+                if (time.time() - engine.mtf_last_sync.get("D1", 0.0)) >= 890 or not engine.mtf_candles.get("D1"):
+                    engine.sync_all_28_pairs_candles(230)
             except Exception:
                 pass
     threading.Thread(target=sync_candles_worker, daemon=True).start()

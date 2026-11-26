@@ -334,14 +334,13 @@ class AutonomousTrader:
         return sig
 
     def _get_tf_candles(self, tf: str) -> Dict[str, List[dict]]:
-        """Retrieves cached or freshly synced 28-pair candles for D1, H4, H1, or M15."""
+        """Non-blocking accessor for cached MTF candles populated by background sync_candles_worker."""
         tf_up = tf.upper()
         if hasattr(self.engine, "get_mtf_candles_28"):
-            cmap = self.engine.get_mtf_candles_28(tf_up)
+            cmap = self.engine.get_mtf_candles_28(tf_up, blocking=False)
             if cmap:
                 return cmap
 
-        # Disk fallback (mainly for tests or standalone D1 cache)
         disk_key = "candles" if tf_up == "D1" else f"candles_{tf_up.lower()}"
         try:
             with open(os.path.join(self.logs_dir, "mt5_candles.json"), "r", encoding="utf-8") as f:
@@ -353,10 +352,6 @@ class AutonomousTrader:
                 return cjson.get("candles") or {}
         except Exception:
             pass
-
-        if tf_up == "D1":
-            synced = self.engine.sync_all_28_pairs_candles(250)
-            return (synced or {}).get("candles") or {}
         return {}
 
     def _sync_closed_cooldowns(self, open_positions: List[dict]):

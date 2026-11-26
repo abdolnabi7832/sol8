@@ -40,8 +40,11 @@ class MockEngine:
     def get_live_positions(self):
         return list(self.positions)
 
-    def get_mtf_candles_28(self, tf="D1", count=260, force=False):
-        return self.mtf.get(tf.upper(), {})
+    def get_mtf_candles_28(self, tf="D1", count=230, force=False, pairs_subset=None, blocking=False):
+        cmap = self.mtf.get(tf.upper(), {})
+        if pairs_subset:
+            return {p: v for p, v in cmap.items() if p in pairs_subset}
+        return cmap
 
     def sync_all_28_pairs_candles(self, count=250):
         return {"candles": self.mtf.get("D1", {}), "rates": {}}

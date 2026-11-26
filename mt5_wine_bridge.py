@@ -310,6 +310,27 @@ def handle_symbol_info(symbol: str):
     }
 
 
+_broker_utc_offset_sec = 0
+
+
+def _detect_broker_offset_locked() -> int:
+    """Detects broker server timezone shift vs real UTC clock (snapped to nearest 30m)."""
+    global _broker_utc_offset_sec
+    now_s = int(time.time())
+    for sym in ("EURUSD", "BTCUSD", "GBPUSD"):
+        try:
+            t = mt5.symbol_info_tick(sym)
+            if t and getattr(t, "time", 0):
+                diff = int(t.time) - now_s
+                if -28800 <= diff <= 28800:
+                    snapped = int(round(diff / 1800.0) * 1800)
+                    _broker_utc_offset_sec = snapped
+                    return snapped
+        except Exception:
+            pass
+    return _broker_utc_offset_sec
+
+
 def handle_candles(symbol: str, timeframe: str = "D1", count: int = 60):
     sym = symbol.upper()
     tf_const = TIMEFRAME_MAP.get(timeframe.upper(), mt5.TIMEFRAME_D1)
@@ -317,23 +338,28 @@ def handle_candles(symbol: str, timeframe: str = "D1", count: int = 60):
         ok, _, _ = _ensure_connected_locked()
         if not ok:
             return {"connected": False, "bars": []}
+        offset_s = _detect_broker_offset_locked()
         mt5.symbol_select(sym, True)
         s_info = mt5.symbol_info(sym)
+        tick = mt5.symbol_info_tick(sym)
         rates = mt5.copy_rates_from_pos(sym, tf_const, 0, int(count))
     bars = []
     if rates is not None and len(rates) > 0:
         for r in rates:
             bars.append({
-                "time": int(r["time"]),
+                "time": int(r["time"]) - offset_s,
                 "open": float(r["open"]),
                 "high": float(r["high"]),
                 "low": float(r["low"]),
                 "close": float(r["close"]),
                 "tick_volume": int(r["tick_volume"]),
             })
+    dec = int(getattr(s_info, "digits", 3 if "JPY" in sym else 5))
     return {
         "connected": True,
-        "digits": int(getattr(s_info, "digits", 3 if "JPY" in sym else 5)),
+        "digits": dec,
+        "bid": round(float(tick.bid), dec) if tick else None,
+        "broker_offset_sec": offset_s,
         "bars": bars,
     }
 
@@ -348,6 +374,7 @@ def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
         ok, _, acc = _ensure_connected_locked()
         if not ok:
             return {"connected": False, "rates": {}, "candles": {}}
+        offset_s = _detect_broker_offset_locked()
 
     for sym in STANDARD_28_PAIRS:
         try:
@@ -369,7 +396,7 @@ def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
                     cl = float(r["close"])
                     ema20 = cl * k20 + ema20 * (1.0 - k20)
                     ema50 = cl * k50 + ema50 * (1.0 - k50)
-                    dt = datetime.datetime.fromtimestamp(int(r["time"]), datetime.timezone.utc).strftime(dt_fmt)
+                    dt = datetime.datetime.fromtimestamp(int(r["time"]) - offset_s, datetime.timezone.utc).strftime(dt_fmt)
                     bars.append({
                         "daysAgo": total_n - 1 - idx,
                         "date": dt,
@@ -387,7 +414,7 @@ def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
             pass
         time.sleep(0.004)  # Yield between pairs so manual/auto order requests never wait long
 
-    return {"connected": True, "timeframe": tf_up, "rates": rates_out, "candles": candles_out}
+    return {"connected": True, "timeframe": tf_up, "broker_offset_sec": offset_s, "rates": rates_out, "candles": candles_out}
 
 
 def handle_order(payload: dict):
