@@ -98,21 +98,26 @@ public class MarketDataController {
             @RequestParam(required = false, defaultValue = "D1") String timeframe,
             @RequestParam(required = false, defaultValue = "60") int count) {
         
-        // 1. Check local cache first for D1, H4, and H1
+        // 1. Check local cache first for D1, H4, H1, and M15
         File file = new File(CANDLES_PATH);
         if (file.exists() && file.length() > 100) {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> data = objectMapper.readValue(file, Map.class);
-                String mapKey = "D1".equalsIgnoreCase(timeframe) ? "candles"
-                        : ("H4".equalsIgnoreCase(timeframe) ? "candles_h4"
-                        : ("H1".equalsIgnoreCase(timeframe) ? "candles_h1" : "candles"));
-                @SuppressWarnings("unchecked")
-                Map<String, Object> candlesMap = (Map<String, Object>) data.get(mapKey);
-                if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
-                    Object list = candlesMap.get(pair.toUpperCase());
-                    if (list instanceof java.util.List && !((java.util.List<?>) list).isEmpty()) {
-                        return ResponseEntity.ok(list);
+                String tfUpper = timeframe.toUpperCase();
+                String mapKey = "D1".equals(tfUpper) ? "candles"
+                        : ("H4".equals(tfUpper) ? "candles_h4"
+                        : ("H1".equals(tfUpper) ? "candles_h1"
+                        : ("M15".equals(tfUpper) ? "candles_m15" : null)));
+                if (mapKey != null) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> candlesMap = (Map<String, Object>) data.get(mapKey);
+                    if (candlesMap != null && candlesMap.containsKey(pair.toUpperCase())) {
+                        Object listObj = candlesMap.get(pair.toUpperCase());
+                        if (listObj instanceof java.util.List<?> list && !list.isEmpty() && list.size() >= Math.min(count, 250)) {
+                            int from = Math.max(0, list.size() - count);
+                            return ResponseEntity.ok(list.subList(from, list.size()));
+                        }
                     }
                 }
             } catch (Exception ignored) {}

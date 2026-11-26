@@ -91,6 +91,7 @@ RUN mkdir -p /app/mt5 && \
 
 # 6. Copy Data, Bridges, Daemon, Backtester, Auto-Trader, Launcher & Spring Boot JAR
 COPY data/ /app/data/
+COPY strategy_playbook.py /app/strategy_playbook.py
 COPY backtest_engine.py /app/backtest_engine.py
 COPY autonomous_trader.py /app/autonomous_trader.py
 COPY mt5_wine_bridge.py /app/mt5_wine_bridge.py

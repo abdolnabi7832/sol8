@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """
-Autonomous 7-Gate Institutional Auto-Trader & Market Structure Engine
-=====================================================================
-Runs unattended inside the Railway Cloud MT5 Daemon, executing the exact
-walk-forward verified Dual Institutional Strategy (2020-2026 OOS PF=1.66):
-  - Edge A: Shock-Safe Overextension Exhaustion Reversal (RSI <= 30 / >= 70 + >1.4 ATR stretch + CB shock guard)
-  - Edge B: Macro Carry & 6-Pillar Divergence Value Pullback (Live Java Macro Delta + Live CB Rates + D1 EMA200 Pullback)
-And maintains live Daily/H4 Market Structure (BOS/CHoCH) inside Java H2 for Gate 5.
+Autonomous Multi-Timeframe, Per-Pair & Session-Specialized Auto-Trader v2
+=========================================================================
+Integrates:
+  - Per-Pair Verified Specialization Playbook across M15 / H1 / H4 / D1
+    (Tokyo Box Mean-Reversion, London ORB/Judas Sweep, NY US-Open Sweep/ORB)
+  - Full 42-Indicator / 6-Pillar Java Macro Consensus + Taylor Rule Deviation
+    + Central Bank Carry Differential
+  - Live ForexFactory/TradingEconomics News Blackout ([-30m, +20m])
+    + Post-News Surprise Bias Continuation ([+20m, +180m])
+  - Live D1 Market Structure Sync (BOS/CHoCH/Swings) to Java H2 (/batch)
+  - Strictly Account-Safe Execution ($100 0.01-lot cap, correlation cap, cooldowns, max_hold)
 """
 
 import os
@@ -17,108 +21,20 @@ import datetime
 import requests
 from typing import Dict, List, Optional, Tuple
 
-PAIRS_28 = [
-    "EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY",
-    "EURGBP", "EURAUD", "EURNZD", "EURCAD", "EURCHF", "EURJPY",
-    "GBPAUD", "GBPNZD", "GBPCAD", "GBPCHF", "GBPJPY",
-    "AUDNZD", "AUDCAD", "AUDCHF", "AUDJPY",
-    "NZDCAD", "NZDCHF", "NZDJPY",
-    "CADCHF", "CADJPY", "CHFJPY",
-]
+from strategy_playbook import (
+    PAIRS_28, CURRENCIES, TYPICAL_SPREAD_PIPS, PAIR_PLAYBOOK, TF_MINUTES,
+    pip_size, compute_full_indicators, evaluate_bespoke_signal,
+)
 
-CURRENCIES = ["USD", "EUR", "GBP", "AUD", "NZD", "CAD", "CHF", "JPY"]
-
-TYPICAL_SPREAD_PIPS = {
-    "EURUSD": 1.1, "USDJPY": 1.3, "GBPUSD": 1.4, "USDCHF": 1.5,
-    "USDCAD": 1.6, "AUDUSD": 1.3, "NZDUSD": 1.7, "EURGBP": 1.5,
-    "EURJPY": 1.8, "EURCHF": 1.8, "EURCAD": 2.2, "EURAUD": 2.3,
-    "EURNZD": 2.8, "GBPJPY": 2.4, "GBPCHF": 2.5, "GBPCAD": 2.6,
-    "GBPAUD": 2.8, "GBPNZD": 3.4, "AUDJPY": 1.9, "AUDCAD": 2.2,
-    "AUDCHF": 2.3, "AUDNZD": 2.3, "NZDJPY": 2.4, "NZDCAD": 2.6,
-    "NZDCHF": 2.5, "CADJPY": 2.1, "CADCHF": 2.2, "CHFJPY": 2.3,
-}
-
-# Fallback historical 6-month policy baseline (used to measure recent CB rate cycle changes)
 CB_RATE_6M_BASELINE = {
     "USD": 3.75, "EUR": 2.00, "GBP": 4.00, "JPY": 0.75,
     "AUD": 3.60, "CAD": 2.25, "CHF": 0.00, "NZD": 2.25,
 }
 
 
-def pip_size(pair: str) -> float:
-    return 0.01 if "JPY" in pair.upper() else 0.0001
-
-
 def compute_pure_indicators(bars: List[dict]) -> Optional[dict]:
-    """Pure Python EMA20/50/200, ATR14, Wilder RSI14, Z20 & 20-bar swings (no NumPy required)."""
-    if not bars or len(bars) < 55:
-        return None
-    n = len(bars)
-    closes = [float(b["close"]) for b in bars]
-    opens = [float(b["open"]) for b in bars]
-    highs = [float(b["high"]) for b in bars]
-    lows = [float(b["low"]) for b in bars]
-
-    def ema_series(vals: List[float], period: int) -> List[float]:
-        k = 2.0 / (period + 1.0)
-        out = [vals[0]]
-        for v in vals[1:]:
-            out.append(v * k + out[-1] * (1.0 - k))
-        return out
-
-    ema20 = ema_series(closes, 20)
-    ema50 = ema_series(closes, 50)
-    ema200 = ema_series(closes, 200) if n >= 200 else ema_series(closes, min(n, 100))
-
-    # True Range & ATR(14) SMA
-    trs = [highs[0] - lows[0]]
-    for i in range(1, n):
-        trs.append(max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1])))
-    atr14 = []
-    for i in range(n):
-        start = max(0, i - 13)
-        window = trs[start:i + 1]
-        atr14.append(sum(window) / len(window))
-
-    # Wilder RSI(14)
-    rsi14 = [50.0] * n
-    if n >= 15:
-        alpha = 1.0 / 14.0
-        avg_g, avg_l = 0.0, 0.0
-        for i in range(1, n):
-            chg = closes[i] - closes[i - 1]
-            g = chg if chg > 0 else 0.0
-            l = -chg if chg < 0 else 0.0
-            avg_g = (1.0 - alpha) * avg_g + alpha * g
-            avg_l = (1.0 - alpha) * avg_l + alpha * l
-            if avg_l <= 1e-12:
-                rsi14[i] = 100.0 if avg_g > 0 else 50.0
-            else:
-                rs = avg_g / avg_l
-                rsi14[i] = 100.0 - (100.0 / (1.0 + rs))
-
-    # Z20 against EMA20 (sample std ddof=1 matching pandas rolling.std)
-    z20 = [0.0] * n
-    for i in range(19, n):
-        win = closes[i - 19:i + 1]
-        mean = sum(win) / 20.0
-        var = sum((x - mean) ** 2 for x in win) / 19.0
-        std = math.sqrt(var)
-        z20[i] = (closes[i] - ema20[i]) / std if std > 1e-12 else 0.0
-
-    return {
-        "bars": bars,
-        "opens": opens,
-        "highs": highs,
-        "lows": lows,
-        "closes": closes,
-        "ema20": ema20,
-        "ema50": ema50,
-        "ema200": ema200,
-        "atr14": atr14,
-        "rsi14": rsi14,
-        "z20": z20,
-    }
+    """Alias kept clean for backwards test compatibility."""
+    return compute_full_indicators(bars)
 
 
 def compute_structure_record(pair: str, ind: dict, timeframe: str = "DAILY") -> dict:
@@ -167,13 +83,12 @@ def compute_structure_record(pair: str, ind: dict, timeframe: str = "DAILY") -> 
 
 
 def compute_live_cs_flow_scores(candles_map: Dict[str, List[dict]]) -> Dict[str, float]:
-    """Cross-sectional 20D/60D/120D currency factor scores [-5, +5] from closed MT5 D1 bars."""
+    """Cross-sectional 20D/60D/120D currency factor scores [-5, +5] from closed D1 bars."""
     raw = {c: [] for c in CURRENCIES}
     valid_pairs = 0
     for pair, bars in candles_map.items():
         if len(bars) < 65:
             continue
-        # Use closed bar [-2] cleanly
         idx = len(bars) - 2
         c_now = float(bars[idx]["close"])
         c20 = float(bars[max(0, idx - 20)]["close"])
@@ -212,7 +127,7 @@ def compute_live_cs_flow_scores(candles_map: Dict[str, List[dict]]) -> Dict[str,
 def is_fx_trading_window_open(now_utc: Optional[datetime.datetime] = None) -> Tuple[bool, str]:
     """Guards against weekend market closed (10018) and daily GTC rollover spread spikes."""
     dt = now_utc or datetime.datetime.now(datetime.timezone.utc)
-    wd = dt.weekday()  # 0=Mon .. 4=Fri, 5=Sat, 6=Sun
+    wd = dt.weekday()
     hm = dt.hour * 60 + dt.minute
 
     if wd == 5:
@@ -237,8 +152,10 @@ class AutonomousTrader:
         self.last_structure_sync_ts = 0.0
         self.last_status = {
             "enabled": True,
+            "strategy_mode": "BESPOKE_28_PAIR_MTF_SESSION_MACRO_V2",
             "last_scan_utc": None,
             "market_window": "INIT",
+            "active_session": "INIT",
             "active_blocks": [],
             "last_candidates": [],
             "last_action": "Initialized",
@@ -277,14 +194,14 @@ class AutonomousTrader:
         ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         hist = self.state.setdefault("recent_decisions", [])
         hist.append({"time": ts, "note": text})
-        self.state["recent_decisions"] = hist[-40:]
+        self.state["recent_decisions"] = hist[-50:]
         self.last_status["last_action"] = text
 
     def sync_market_structure(self, candles_map: Dict[str, List[dict]]) -> int:
         """Computes live D1 Market Structure (BOS/CHoCH/Swings) and batch-updates Java H2."""
         payload = []
         for pair, bars in candles_map.items():
-            ind = compute_pure_indicators(bars)
+            ind = compute_full_indicators(bars)
             if ind:
                 payload.append(compute_structure_record(pair, ind, "DAILY"))
         if not payload:
@@ -303,19 +220,37 @@ class AutonomousTrader:
         return 0
 
     def _fetch_java_context(self) -> Tuple[dict, dict, set, dict]:
-        """Returns (pair_deltas, cb_rates, news_locked_ccys, calendar_locks)."""
+        """
+        Queries ALL 42 indicators' synthesized 6-Pillar Quant Scores + Taylor Deviations + Calendar:
+        Returns (pair_deltas, cb_rates, news_locked_ccys, ccy_post_news_bias).
+        """
         pair_deltas = {}
         cb_rates = dict(CB_RATE_6M_BASELINE)
         news_locked_ccys = set()
-        signal_map = {}
+        ccy_scores = {}
+        ccy_taylor_dev = {}
+        ccy_pillar_consensus = {}
+        ccy_post_news = {}
 
         try:
             r_sc = requests.get(f"{self.java_base_url}/api/v1/quant/scores", timeout=5.0)
             if r_sc.status_code == 200:
                 for row in (r_sc.json() or []):
                     ccy = str(row.get("currency", "")).upper()
-                    if ccy in CURRENCIES and row.get("actualInterestRate") is not None:
+                    if ccy not in CURRENCIES:
+                        continue
+                    ccy_scores[ccy] = float(row.get("finalScore", 0.0))
+                    ccy_taylor_dev[ccy] = float(row.get("taylorDeviation", 0.0))
+                    if row.get("actualInterestRate") is not None:
                         cb_rates[ccy] = float(row["actualInterestRate"])
+                    # Count consensus across all 6 Macro Pillars (42 indicators total)
+                    pillars = row.get("pillarScores") or {}
+                    net_p = 0.0
+                    for pk, pval in pillars.items():
+                        raw_p = float((pval or {}).get("rawPillarScore", 0.0))
+                        if abs(raw_p) >= 0.15:
+                            net_p += 1.0 if raw_p > 0 else -1.0
+                    ccy_pillar_consensus[ccy] = net_p / 6.0  # [-1, +1] across all 6 pillars!
         except Exception:
             pass
 
@@ -325,13 +260,19 @@ class AutonomousTrader:
                 bs = r_bs.json() or {}
                 for sig in (bs.get("pairSignals") or []):
                     pair = str(sig.get("pair", "")).upper()
-                    if pair:
-                        pair_deltas[pair] = float(sig.get("deltaScore", 0.0))
-                        signal_map[pair] = sig
-                        gates = sig.get("gates") or {}
-                        if sig.get("isNewsLocked") or str(gates.get("gate4NewsStatus", "")).upper() == "NEWS_LOCKED":
-                            news_locked_ccys.add(pair[:3])
-                            news_locked_ccys.add(pair[3:])
+                    if not pair or len(pair) != 6:
+                        continue
+                    base_d = float(sig.get("deltaScore", 0.0))
+                    b, q = pair[:3], pair[3:]
+                    # Combine 6-pillar consensus & Taylor rule policy bias into live pair delta
+                    pil_d = ccy_pillar_consensus.get(b, 0.0) - ccy_pillar_consensus.get(q, 0.0)
+                    tay_d = max(-1.0, min(1.0, (ccy_taylor_dev.get(b, 0.0) - ccy_taylor_dev.get(q, 0.0)) * 0.25))
+                    pair_deltas[pair] = round(base_d + 0.4 * pil_d + 0.3 * tay_d, 3)
+
+                    gates = sig.get("gates") or {}
+                    if sig.get("isNewsLocked") or str(gates.get("gate4NewsStatus", "")).upper() == "NEWS_LOCKED":
+                        news_locked_ccys.add(b)
+                        news_locked_ccys.add(q)
 
                 now_utc = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
                 for ev in (bs.get("economicCalendar") or []):
@@ -339,18 +280,27 @@ class AutonomousTrader:
                         continue
                     ccy = str(ev.get("currency", "")).upper()
                     ts_str = ev.get("exactEventTimestampUtc")
-                    if ccy in CURRENCIES and ts_str:
-                        try:
-                            ev_dt = datetime.datetime.fromisoformat(str(ts_str).replace("Z", "")[:19])
-                            diff_min = (ev_dt - now_utc).total_seconds() / 60.0
-                            if -45.0 <= diff_min <= 45.0:
-                                news_locked_ccys.add(ccy)
-                        except Exception:
-                            pass
+                    if ccy not in CURRENCIES or not ts_str:
+                        continue
+                    try:
+                        ev_dt = datetime.datetime.fromisoformat(str(ts_str).replace("Z", "")[:19])
+                        diff_min = (now_utc - ev_dt).total_seconds() / 60.0  # positive = after release
+                        if -30.0 <= diff_min <= 20.0:
+                            news_locked_ccys.add(ccy)
+                        elif 20.0 < diff_min <= 180.0 and ev.get("actual") is not None:
+                            surp = float(ev.get("surpriseStdDev") or 0.0)
+                            # Unemployment miss is negative for currency; handle direction safely
+                            ev_name = str(ev.get("eventName", "")).lower()
+                            if "unemployment" in ev_name or "jobless" in ev_name:
+                                surp = -surp
+                            if abs(surp) >= 0.75:
+                                ccy_post_news[ccy] = 1 if surp > 0 else -1
+                    except Exception:
+                        pass
         except Exception:
             pass
 
-        return pair_deltas, cb_rates, news_locked_ccys, signal_map
+        return pair_deltas, cb_rates, news_locked_ccys, ccy_post_news
 
     def _compute_setup_signal(
         self,
@@ -359,96 +309,70 @@ class AutonomousTrader:
         java_delta: Optional[float],
         flow_scores: Dict[str, float],
         cb_rates: Dict[str, float],
+        d1_ind: Optional[dict] = None,
+        post_news_bias: int = 0,
+        cfg_override: Optional[dict] = None,
     ) -> Optional[dict]:
-        """Evaluates exact verified Dual Institutional Strategy on last completed D1 bar ([-2])."""
-        bars = ind["bars"]
-        if len(bars) < 60:
+        """Compatibility wrapper & dispatcher using verified per-pair playbook."""
+        cfg = cfg_override or PAIR_PLAYBOOK.get(pair)
+        if not cfg:
             return None
-        i = len(bars) - 2  # Strictly closed prior Daily bar (non-repainting)
-        bar_date = str(bars[i].get("date") or bars[i].get("time") or "")[:10]
-
-        # Freshness check: completed bar must be recent (within 5 days for weekends/holidays)
-        try:
-            bar_dt = datetime.datetime.strptime(bar_date, "%Y-%m-%d").date()
-            if (datetime.datetime.now(datetime.timezone.utc).date() - bar_dt).days > 5:
-                return None
-        except Exception:
-            pass
-
-        c = ind["closes"][i]
-        o = ind["opens"][i]
-        pc = ind["closes"][i - 1]
-        e50 = ind["ema50"][i]
-        e200 = ind["ema200"][i]
-        atr = ind["atr14"][i]
-        rsi = ind["rsi14"][i]
-        prsi = ind["rsi14"][i - 1]
-        z = ind["z20"][i]
-        spot = ind["closes"][-1]
-        if atr <= 0:
-            return None
-
         b, q = pair[:3], pair[3:]
-        flow_delta = (flow_scores.get(b, 0.0) - flow_scores.get(q, 0.0))
-        delta = (0.5 * java_delta + 0.5 * flow_delta) if java_delta is not None else flow_delta
+        flow_delta = flow_scores.get(b, 0.0) - flow_scores.get(q, 0.0)
+        delta = (0.55 * java_delta + 0.45 * flow_delta) if java_delta is not None else flow_delta
         carry = cb_rates.get(b, 0.0) - cb_rates.get(q, 0.0)
         chg_diff = (cb_rates.get(b, 0.0) - CB_RATE_6M_BASELINE.get(b, cb_rates.get(b, 0.0))) - (
             cb_rates.get(q, 0.0) - CB_RATE_6M_BASELINE.get(q, cb_rates.get(q, 0.0))
         )
+        sig = evaluate_bespoke_signal(
+            pair=pair, cfg=cfg, ind=ind, d1_ind=d1_ind,
+            macro_delta=delta, carry_diff=carry, chg_diff=chg_diff,
+            bar_idx=None, post_news_bias=post_news_bias,
+        )
+        if sig:
+            sig["bar_date"] = sig["bar_key"]
+        return sig
 
-        action, setup, conviction = None, None, 0.0
+    def _get_tf_candles(self, tf: str) -> Dict[str, List[dict]]:
+        """Retrieves cached or freshly synced 28-pair candles for D1, H4, H1, or M15."""
+        tf_up = tf.upper()
+        if hasattr(self.engine, "get_mtf_candles_28"):
+            cmap = self.engine.get_mtf_candles_28(tf_up)
+            if cmap:
+                return cmap
 
-        # Edge A: Shock-Safe Exhaustion Fade
-        if rsi <= 30.0 and c > o and (e50 - c) > 1.4 * atr and chg_diff > -1.0 and delta > -3.0:
-            action, setup, conviction = "BUY", "ShockSafeMeanRev", 2.0 + (e50 - c) / atr
-        elif rsi >= 70.0 and c < o and (c - e50) > 1.4 * atr and chg_diff < 1.0 and delta < 3.0:
-            action, setup, conviction = "SELL", "ShockSafeMeanRev", 2.0 + (c - e50) / atr
+        # Disk fallback (mainly for tests or standalone D1 cache)
+        disk_key = "candles" if tf_up == "D1" else f"candles_{tf_up.lower()}"
+        try:
+            with open(os.path.join(self.logs_dir, "mt5_candles.json"), "r", encoding="utf-8") as f:
+                cjson = json.load(f)
+            cmap = cjson.get(disk_key) or {}
+            if cmap:
+                return cmap
+            if tf_up == "D1":
+                return cjson.get("candles") or {}
+        except Exception:
+            pass
 
-        # Edge B: Macro Carry & 6-Pillar Divergence Value Pullback
-        elif (carry >= 1.25 and delta >= 1.5 and chg_diff >= -0.25) and c > e200 and z <= -0.75 and rsi <= 48.0 and c > o and c > pc and rsi > prsi:
-            action, setup, conviction = "BUY", "MacroCarryPullback", 1.5 + abs(delta) * 0.4 + carry * 0.3
-        elif (carry <= -1.25 and delta <= -1.5 and chg_diff <= 0.25) and c < e200 and z >= 0.75 and rsi >= 52.0 and c < o and c < pc and rsi < prsi:
-            action, setup, conviction = "SELL", "MacroCarryPullback", 1.5 + abs(delta) * 0.4 - carry * 0.3
-
-        if not action:
-            return None
-
-        # Anti-Chase Guard: reject if spot already ran away > 0.55 * ATR past completed bar close
-        drift = (spot - c) if action == "BUY" else (c - spot)
-        if drift > 0.55 * atr:
-            return None
-
-        return {
-            "pair": pair,
-            "action": action,
-            "setup": setup,
-            "conviction": round(conviction, 3),
-            "bar_date": bar_date,
-            "atr14": atr,
-            "delta": round(delta, 2),
-            "carry": round(carry, 2),
-            "rsi14": round(rsi, 1),
-            "z20": round(z, 2),
-        }
+        if tf_up == "D1":
+            synced = self.engine.sync_all_28_pairs_candles(250)
+            return (synced or {}).get("candles") or {}
+        return {}
 
     def _sync_closed_cooldowns(self, open_positions: List[dict]):
-        """Tracks closed broker deals so losing trades enforce a 5-day per-pair cooldown."""
+        """Tracks closed broker deals so losing trades enforce a cooldown per pair."""
         if not self.engine.use_wine_bridge:
             return
         from mt5_cockpit_daemon import wine_bridge_get
         resp = wine_bridge_get("/history_deals", {"days": 7}, timeout=4.0)
         deals = (resp or {}).get("deals") or []
         open_tickets = {int(p["ticket"]) for p in open_positions}
-        today_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
         today_date = datetime.datetime.now(datetime.timezone.utc).date()
 
-        # Check closed deals for net loss & mark cooldown
         by_pos = {}
         for d in deals:
             pid = int(d.get("position_id") or 0)
-            if pid <= 0 or pid in open_tickets:
-                continue
-            if int(d.get("entry", 0)) != 1:  # 1 == DEAL_ENTRY_OUT
+            if pid <= 0 or pid in open_tickets or int(d.get("entry", 0)) != 1:
                 continue
             sym = str(d.get("symbol", "")).upper()
             net = float(d.get("profit", 0.0)) + float(d.get("commission", 0.0)) + float(d.get("swap", 0.0))
@@ -459,15 +383,16 @@ class AutonomousTrader:
 
         for pid, info in by_pos.items():
             sym = info["sym"]
-            if sym in PAIRS_28 and info["net"] < -0.10 and info["time"] > 0:
+            if sym in PAIRS_28 and info["net"] < -0.15 and info["time"] > 0:
+                cfg = PAIR_PLAYBOOK.get(sym, {"tf": "H4"})
+                cd_days = 1 if cfg["tf"] in ("M15", "H1") else (2 if cfg["tf"] == "H4" else 5)
                 deal_dt = datetime.datetime.fromtimestamp(info["time"], datetime.timezone.utc).date()
-                until_dt = deal_dt + datetime.timedelta(days=5)
+                until_dt = deal_dt + datetime.timedelta(days=cd_days)
                 if until_dt >= today_date:
                     cur_until = self.state["cooldown_until"].get(sym, "")
                     if until_dt.strftime("%Y-%m-%d") > cur_until:
                         self.state["cooldown_until"][sym] = until_dt.strftime("%Y-%m-%d")
 
-        # Prune closed position_meta
         for tk in list(self.state.get("position_meta", {}).keys()):
             try:
                 if int(tk) not in open_tickets:
@@ -476,12 +401,17 @@ class AutonomousTrader:
                 pass
 
     def evaluate_and_trade_once(self, force: bool = False) -> dict:
-        """Main single-pass autonomous evaluation & execution step (called every ~60s)."""
+        """Evaluates all 28 bespoke pair strategies (M15/H1/H4/D1) with 7-gate safety."""
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         now_str = now_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
         today_str = now_utc.strftime("%Y-%m-%d")
         self.last_status["last_scan_utc"] = now_str
         self.last_status["enabled"] = bool(self.engine.autopilot_enabled)
+
+        hr = now_utc.hour
+        self.last_status["active_session"] = (
+            "TOKYO (00-07 UTC)" if hr < 7 else ("LONDON (07-12 UTC)" if hr < 12 else ("NY_US_OPEN (12-18 UTC)" if hr < 18 else "AFTER_HOURS"))
+        )
 
         if not self.engine.autopilot_enabled:
             self.last_status["market_window"] = "PAUSED_BY_USER"
@@ -499,7 +429,6 @@ class AutonomousTrader:
             self.last_status["active_blocks"] = blocks
             return self.last_status
 
-        # Gate 1: Terminal & Trade Permission check
         acc = self.engine.get_account_summary()
         if not acc.get("connected") or not acc.get("terminal_trade_allowed", True) or acc.get("terminal_tradeapi_disabled", False):
             blocks.append(f"Terminal not ready (connected={acc.get('connected')}, trade_allowed={acc.get('terminal_trade_allowed')})")
@@ -512,7 +441,6 @@ class AutonomousTrader:
         margin_free = float(acc.get("margin_free", equity))
         margin_level = float(acc.get("margin_level", 9999.0)) if margin > 0 else 9999.0
 
-        # Gate 4 (Account Vault): Daily Loss Kill-Switch & Max Drawdown Floor
         anchor = self.state.setdefault("daily_anchor", {})
         if anchor.get("date") != today_str or not anchor.get("start_equity"):
             anchor["date"] = today_str
@@ -538,7 +466,7 @@ class AutonomousTrader:
         positions = self.engine.get_live_positions()
         self._sync_closed_cooldowns(positions)
 
-        max_concurrent = 2 if balance < 500.0 else 4
+        max_concurrent = 3 if balance < 500.0 else 5
         if len(positions) >= max_concurrent:
             blocks.append(f"Max Concurrent Positions Reached ({len(positions)}/{max_concurrent})")
 
@@ -547,24 +475,17 @@ class AutonomousTrader:
             self._save_state()
             return self.last_status
 
-        # Fetch live 250-bar D1 candles + live Java Macro Context
-        candles_map = {}
-        try:
-            with open(os.path.join(self.logs_dir, "mt5_candles.json"), "r", encoding="utf-8") as f:
-                cjson = json.load(f)
-            candles_map = cjson.get("candles") or {}
-        except Exception:
-            pass
-        if len(candles_map) < 20 or len(next(iter(candles_map.values()), [])) < 210:
-            synced = self.engine.sync_all_28_pairs_candles(250)
-            scandles = (synced or {}).get("candles") or {}
-            if len(scandles) >= len(candles_map) and scandles:
-                candles_map = scandles
+        # Load Multi-Timeframe Candle Panels
+        d1_candles = self._get_tf_candles("D1")
+        mtf_cache = {"D1": d1_candles, "H4": {}, "H1": {}, "M15": {}}
+        needed_tfs = {cfg["tf"] for cfg in PAIR_PLAYBOOK.values()} - {"D1"}
+        for tf in needed_tfs:
+            mtf_cache[tf] = self._get_tf_candles(tf)
 
-        java_deltas, cb_rates, news_locked_ccys, _ = self._fetch_java_context()
-        flow_scores = compute_live_cs_flow_scores(candles_map)
+        d1_ind_map = {p: compute_full_indicators(bars) for p, bars in d1_candles.items() if bars}
+        java_deltas, cb_rates, news_locked_ccys, ccy_post_news = self._fetch_java_context()
+        flow_scores = compute_live_cs_flow_scores(d1_candles)
 
-        # Correlation / Single-Currency Net Exposure Check
         open_pairs = {str(p.get("symbol", "")).upper() for p in positions}
         ccy_exp = {}
         for p in positions:
@@ -576,18 +497,26 @@ class AutonomousTrader:
 
         candidates = []
         for pair in PAIRS_28:
-            bars = candles_map.get(pair)
+            cfg = PAIR_PLAYBOOK[pair]
+            tf = cfg["tf"]
+            bars = (mtf_cache.get(tf) or {}).get(pair)
             if not bars:
                 continue
-            ind = compute_pure_indicators(bars)
+            ind = d1_ind_map.get(pair) if tf == "D1" else compute_full_indicators(bars)
             if not ind:
                 continue
-            sig = self._compute_setup_signal(pair, ind, java_deltas.get(pair), flow_scores, cb_rates)
+            b, q = pair[:3], pair[3:]
+            pnb = ccy_post_news.get(b, 0) - ccy_post_news.get(q, 0)
+            pnb_sign = 1 if pnb > 0 else (-1 if pnb < 0 else 0)
+            sig = self._compute_setup_signal(
+                pair, ind, java_deltas.get(pair), flow_scores, cb_rates,
+                d1_ind=d1_ind_map.get(pair), post_news_bias=pnb_sign, cfg_override=cfg,
+            )
             if sig:
                 candidates.append(sig)
 
         candidates.sort(key=lambda x: x["conviction"], reverse=True)
-        self.last_status["last_candidates"] = candidates[:6]
+        self.last_status["last_candidates"] = candidates[:8]
 
         from mt5_cockpit_daemon import wine_bridge_get
         for cand in candidates:
@@ -595,29 +524,28 @@ class AutonomousTrader:
                 break
             pair = cand["pair"]
             action = cand["action"]
-            bar_date = cand["bar_date"]
+            bar_key = cand["bar_key"]
             b, q = pair[:3], pair[3:]
 
             if pair in open_pairs:
                 continue
-            if self.state["traded_bars"].get(pair) == bar_date:
+            if self.state["traded_bars"].get(pair) == bar_key:
                 continue
             if self.state["cooldown_until"].get(pair, "") > today_str:
                 continue
             if b in news_locked_ccys or q in news_locked_ccys:
-                self._record_decision(f"Skipped {pair} {action}: High-Impact News Lock on {b}/{q}")
+                self._record_decision(f"Skipped {pair} {action} ({cand['setup']}): High-Impact News Lock on {b}/{q}")
                 continue
             d_sign = 1 if action == "BUY" else -1
             if abs(ccy_exp.get(b, 0) + d_sign) > 1 or abs(ccy_exp.get(q, 0) - d_sign) > 1:
-                self._record_decision(f"Skipped {pair} {action}: Correlation Cap on {b}/{q}")
+                self._record_decision(f"Skipped {pair} {action} ({cand['setup']}): Correlation Cap on {b}/{q}")
                 continue
 
-            # Live Broker Symbol Check (Spread & Exact Tick Value)
             ps = pip_size(pair)
             spread_pips = TYPICAL_SPREAD_PIPS.get(pair, 2.0)
             pip_val_per_lot = 10.0 if q == "USD" else 7.5
             vol_min, vol_max, vol_step = 0.01, 10.0, 0.01
-            min_stop_pips = 5.0
+            min_stop_pips = 3.0
 
             if self.engine.use_wine_bridge and self.engine.wine_bridge_ok:
                 si = wine_bridge_get("/symbol_info", {"symbol": pair}, timeout=4.0)
@@ -648,8 +576,9 @@ class AutonomousTrader:
                 continue
 
             atr_pips = cand["atr14"] / ps
-            sl_pips = round(max(atr_pips * 1.8, 25.0, min_stop_pips + 3.0), 1)
-            tp_pips = round(sl_pips * (2.8 / 1.8), 1)
+            floor_pips = 16.0 if cand["tf"] in ("M15", "H1", "H4") else 25.0
+            sl_pips = round(max(atr_pips * cand["sl_m"], floor_pips, min_stop_pips + 3.0), 1)
+            tp_pips = round(sl_pips * (cand["tp_m"] / cand["sl_m"]), 1)
 
             if balance < 500.0:
                 lots = vol_min
@@ -657,7 +586,7 @@ class AutonomousTrader:
                 budget_cap = max(13.8, equity * 0.14)
                 if risk_usd > budget_cap:
                     self._record_decision(
-                        f"Skipped {pair} {action} ({cand['setup']}): 0.01L risk ${risk_usd:.2f} > ${budget_cap:.2f} safety cap"
+                        f"Skipped {pair} {action} ({cand['setup']}): 0.01L risk ${risk_usd:.2f} > ${budget_cap:.2f} cap"
                     )
                     continue
             else:
@@ -669,19 +598,23 @@ class AutonomousTrader:
             res = self.engine.execute_order(pair, action, volume=lots, sl_pips=sl_pips, tp_pips=tp_pips)
             if res and res.get("success"):
                 ticket = int(res.get("ticket") or 0)
-                self.state["traded_bars"][pair] = bar_date
+                self.state["traded_bars"][pair] = bar_key
                 self.state["trades_opened_total"] = int(self.state.get("trades_opened_total", 0)) + 1
                 self.last_status["trades_opened_total"] = self.state["trades_opened_total"]
+                max_hold_min = int(cand["max_hold_bars"]) * TF_MINUTES.get(cand["tf"], 240)
                 if ticket > 0:
                     self.state["position_meta"][str(ticket)] = {
                         "pair": pair,
                         "direction": action,
                         "setup": cand["setup"],
+                        "tf": cand["tf"],
                         "entry_price": float(res.get("price") or 0.0),
                         "sl_pips": sl_pips,
                         "tp_pips": tp_pips,
                         "atr_pips": round(atr_pips, 1),
                         "be_locked": False,
+                        "opened_epoch": int(time.time()),
+                        "max_hold_minutes": max_hold_min,
                         "opened_at": now_str,
                     }
                 msg = (
@@ -692,7 +625,6 @@ class AutonomousTrader:
                 self._record_decision(msg)
                 self._save_state()
 
-                # Sync to Java ActiveTradeEntity cleanly
                 try:
                     requests.post(
                         f"{self.java_base_url}/api/v1/active-trades",

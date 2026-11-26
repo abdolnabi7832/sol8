@@ -338,7 +338,10 @@ def handle_candles(symbol: str, timeframe: str = "D1", count: int = 60):
     }
 
 
-def handle_all_candles_28(count: int = 60):
+def handle_all_candles_28(count: int = 60, timeframe: str = "D1"):
+    tf_up = str(timeframe or "D1").upper()
+    tf_const = TIMEFRAME_MAP.get(tf_up, mt5.TIMEFRAME_D1)
+    dt_fmt = "%Y-%m-%d" if tf_up in ("D1", "W1") else "%Y-%m-%d %H:%M"
     rates_out = {}
     candles_out = {}
     with _mt5_lock:
@@ -355,7 +358,7 @@ def handle_all_candles_28(count: int = 60):
                 tick = mt5.symbol_info_tick(sym)
                 if tick:
                     rates_out[sym] = round(float(tick.bid), dec)
-                arr = mt5.copy_rates_from_pos(sym, mt5.TIMEFRAME_D1, 0, int(count))
+                arr = mt5.copy_rates_from_pos(sym, tf_const, 0, int(count))
             if arr is not None and len(arr) > 0:
                 bars = []
                 ema20 = float(arr[0]["close"])
@@ -366,10 +369,11 @@ def handle_all_candles_28(count: int = 60):
                     cl = float(r["close"])
                     ema20 = cl * k20 + ema20 * (1.0 - k20)
                     ema50 = cl * k50 + ema50 * (1.0 - k50)
-                    dt = datetime.datetime.fromtimestamp(int(r["time"]), datetime.timezone.utc).strftime("%Y-%m-%d")
+                    dt = datetime.datetime.fromtimestamp(int(r["time"]), datetime.timezone.utc).strftime(dt_fmt)
                     bars.append({
                         "daysAgo": total_n - 1 - idx,
                         "date": dt,
+                        "time": dt,
                         "open": round(float(r["open"]), dec),
                         "high": round(float(r["high"]), dec),
                         "low": round(float(r["low"]), dec),
@@ -381,9 +385,9 @@ def handle_all_candles_28(count: int = 60):
                 candles_out[sym] = bars
         except Exception:
             pass
-        time.sleep(0.005)  # Yield between pairs so manual order requests never wait long
+        time.sleep(0.004)  # Yield between pairs so manual/auto order requests never wait long
 
-    return {"connected": True, "rates": rates_out, "candles": candles_out}
+    return {"connected": True, "timeframe": tf_up, "rates": rates_out, "candles": candles_out}
 
 
 def handle_order(payload: dict):
@@ -616,7 +620,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._send_json(handle_candles(sym, tf, cnt))
             elif path == "/all_candles_28":
                 cnt = int(q.get("count", [60])[0])
-                self._send_json(handle_all_candles_28(cnt))
+                tf = q.get("timeframe", ["D1"])[0]
+                self._send_json(handle_all_candles_28(count=cnt, timeframe=tf))
             else:
                 self._send_json({"error": "Not found"}, status=404)
         except Exception as ex:

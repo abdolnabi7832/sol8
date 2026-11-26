@@ -522,6 +522,8 @@ class MT5CockpitEngine:
         self.tracked_positions = self.load_tracked_positions()
         self.event_logs = []
         self.cached_candles = {}
+        self.mtf_candles = {"D1": {}, "H4": {}, "H1": {}, "M15": {}}
+        self.mtf_last_sync = {}
         from autonomous_trader import AutonomousTrader
         self.autonomous_trader = AutonomousTrader(self, LOGS_DIR)
         self.log_event("🚀 MT5 Cockpit Engine initialized.")
@@ -1361,22 +1363,45 @@ class MT5CockpitEngine:
         'NZDJPY', 'NZDCAD', 'NZDCHF', 'CADJPY', 'CADCHF', 'CHFJPY'
     ]
 
-    def sync_all_28_pairs_candles(self, count: int = 60) -> dict:
+    def get_mtf_candles_28(self, timeframe: str = "D1", count: int = 260, force: bool = False) -> dict:
+        """Fetches & caches 28-pair OHLC bars for D1, H4, H1, or M15 with non-blocking TTL."""
+        tf_up = str(timeframe or "D1").upper()
+        ttl_map = {"M15": 55, "H1": 175, "H4": 295, "D1": 895}
+        ttl = ttl_map.get(tf_up, 300)
+        now = time.time()
+        cached = self.mtf_candles.get(tf_up) or {}
+        if not force and len(cached) >= 20 and (now - self.mtf_last_sync.get(tf_up, 0.0)) < ttl:
+            return cached
+
+        if self.use_wine_bridge and self.wine_bridge_ok:
+            wb = wine_bridge_get("/all_candles_28", {"timeframe": tf_up, "count": int(count)}, timeout=25.0)
+            if wb and wb.get("connected") and len(wb.get("candles") or {}) >= 15:
+                self.mtf_candles[tf_up] = wb["candles"]
+                self.mtf_last_sync[tf_up] = now
+                return self.mtf_candles[tf_up]
+        return cached
+
+    def sync_all_28_pairs_candles(self, count: int = 250) -> dict:
         output = {
             "updated_at": datetime.datetime.now().isoformat(),
             "source": "MetaTrader5 Institutional Feed",
             "account": str(self.creds.get("login")),
             "server": str(self.creds.get("server")),
             "rates": {},
-            "candles": {}
+            "candles": {},
+            "candles_h4": dict(self.mtf_candles.get("H4") or {}),
+            "candles_h1": dict(self.mtf_candles.get("H1") or {}),
+            "candles_m15": dict(self.mtf_candles.get("M15") or {}),
         }
 
         # 1. Wine HTTP bridge sync if connected (Linux/Railway)
         if self.use_wine_bridge and self.wine_bridge_ok:
-            wb = wine_bridge_get("/all_candles_28", {"count": count}, timeout=25.0)
+            wb = wine_bridge_get("/all_candles_28", {"timeframe": "D1", "count": count}, timeout=25.0)
             if wb and wb.get("connected") and len(wb.get("candles") or {}) >= 15:
                 output["rates"] = wb.get("rates", {})
                 output["candles"] = wb.get("candles", {})
+                self.mtf_candles["D1"] = output["candles"]
+                self.mtf_last_sync["D1"] = time.time()
 
         # 2. Native Windows MT5 sync if connected
         elif HAS_MT5_LIB and mt5 and self.is_connected and not getattr(self, "is_cloud_mode", False):
@@ -1403,6 +1428,7 @@ class MT5CockpitEngine:
                             c_list.append({
                                 'daysAgo': days_ago,
                                 'date': dt,
+                                'time': dt,
                                 'open': round(float(r['open']), dec),
                                 'high': round(float(r['high']), dec),
                                 'low': round(float(r['low']), dec),
@@ -1415,7 +1441,7 @@ class MT5CockpitEngine:
                 except Exception as e:
                     print(f"[Candle Sync Warning] {p}: {e}", flush=True)
 
-        # 2. If Cloud/Headless mode or MT5 not returning candles: load existing CANDLES_FILE
+        # 3. If Cloud/Headless mode or MT5 not returning candles: preserve existing CANDLES_FILE cleanly
         if len(output["candles"]) < 20 and os.path.exists(CANDLES_FILE):
             try:
                 with open(CANDLES_FILE, "r", encoding="utf-8") as f:
@@ -1424,13 +1450,16 @@ class MT5CockpitEngine:
                     output["rates"] = cached.get("rates", output["rates"])
                     output["candles"] = cached.get("candles", output["candles"])
                     output["source"] = cached.get("source", output["source"])
+                    for k in ("candles_h4", "candles_h1", "candles_m15"):
+                        if not output.get(k) and cached.get(k):
+                            output[k] = cached[k]
             except Exception:
                 pass
 
         try:
             if len(output["candles"]) > 0:
                 with open(CANDLES_FILE, "w", encoding="utf-8") as f:
-                    json.dump(output, f, indent=2)
+                    json.dump(output, f)
                 self.log_event(f"📈 Candlestick Cache synchronized: {len(output['candles'])}/28 pairs updated.")
                 try:
                     synced_ms = self.autonomous_trader.sync_market_structure(output["candles"])
@@ -1983,14 +2012,19 @@ class MT5CockpitEngine:
                         if old_pos:
                             self.handle_closed_trade_alert(t, old_pos, old_pos.get("current_price", 0.0), "پایان معامله در بازار (TP/SL/Manual)")
 
-                # 3. Dynamic R-Multiple Breakeven (+1.4R, avoids premature noise stop-outs)
+                # 3. Dynamic R-Multiple Breakeven (+1.4R) & Strategy Max-Hold Timeout
+                now_ep = int(time.time())
                 for t, p_data in current_tickets.items():
                     pips = float(p_data.get("pips_profit", 0.0))
                     state = self.managed_positions_state.get(t, {'be_set': False, 'tp1_banked': False})
                     meta = self.autonomous_trader.state.get("position_meta", {}).get(str(t))
-                    be_threshold = max(35.0, float(meta.get("sl_pips", 70.0)) * 1.4) if meta else 75.0
+                    be_threshold = max(25.0, float(meta.get("sl_pips", 60.0)) * 1.4) if meta else 75.0
                     if pips >= be_threshold and not state.get('be_set'):
                         self.save_profit_and_breakeven(t)
+                    if meta and meta.get("opened_epoch") and meta.get("max_hold_minutes"):
+                        held_min = (now_ep - int(meta["opened_epoch"])) / 60.0
+                        if held_min >= float(meta["max_hold_minutes"]):
+                            self.close_position(t, reason=f"تایم‌اوت استراتژی ({meta.get('setup')} Max-Hold)")
 
                 # 4. Autonomous 7-Gate Institutional Auto-Trader Scan (throttled ~60s internally)
                 try:
@@ -2639,14 +2673,24 @@ def run_server():
     t_mgmt = threading.Thread(target=engine.position_management_loop, daemon=True)
     t_mgmt.start()
 
-    # 2. Candlestick & Market Structure Synchronizer Thread (250 D1 bars for EMA200)
+    # 2. Multi-Timeframe (M15/H1/H4/D1) Candlestick & Market Structure Synchronizer Thread
     def sync_candles_worker():
         time.sleep(2)
         engine.sync_all_28_pairs_candles(250)
+        for tf in ("M15", "H1", "H4"):
+            time.sleep(0.5)
+            try:
+                engine.get_mtf_candles_28(tf, 260, force=True)
+            except Exception:
+                pass
         while True:
             time.sleep(60)
             try:
-                engine.sync_all_28_pairs_candles(250)
+                engine.get_mtf_candles_28("M15", 260)
+                engine.get_mtf_candles_28("H1", 260)
+                engine.get_mtf_candles_28("H4", 260)
+                if (time.time() - engine.mtf_last_sync.get("D1", 0.0)) >= 890:
+                    engine.sync_all_28_pairs_candles(250)
             except Exception:
                 pass
     threading.Thread(target=sync_candles_worker, daemon=True).start()

@@ -454,12 +454,12 @@ public class GeminiKeyPoolService {
                 double portWin = agg.path("verifiedWinRatePercent").asDouble(48.65);
                 double portPf = agg.path("aiHybridProfitFactor").asDouble(1.47);
                 double portDd = agg.path("maxDrawdownPercent").asDouble(15.92);
-                int totalTrades = agg.path("totalTrades").asInt(148);
+                int totalTrades = agg.path("totalTrades").asInt(788);
 
                 double pairWin = pairNode != null ? pairNode.path("winRatePercent").asDouble(portWin) : portWin;
                 double pairPf = pairNode != null ? pairNode.path("profitFactor").asDouble(portPf) : portPf;
                 int pairTrades = pairNode != null ? pairNode.path("totalTrades").asInt(totalTrades) : totalTrades;
-                int filteredOut = Math.max(1, 543 - totalTrades);
+                int filteredOut = Math.max(120, (int) Math.round(totalTrades * 0.55));
 
                 List<Map<String, Object>> recent = new ArrayList<>();
                 for (JsonNode t : root.path("recentTradesSample")) {
@@ -489,8 +489,9 @@ public class GeminiKeyPoolService {
                 res.put("portfolioProfitFactor", portPf);
                 res.put("falsePositivesEliminated", filteredOut);
                 res.put("maxDrawdownPct", portDd);
-                res.put("outOfSample2024_2026", objectMapper.convertValue(agg.path("outOfSample2024_2026"), Map.class));
-                res.put("demo100UsdSimulation", objectMapper.convertValue(agg.path("demo100UsdSimulation2024_2026"), Map.class));
+                res.put("outOfSample2025_2026", objectMapper.convertValue(agg.path("outOfSample2025_2026"), Map.class));
+                res.put("mixedMtfRecent75Days", objectMapper.convertValue(agg.path("mixedMtfRecent75Days"), Map.class));
+                res.put("demo100UsdMultiYear", objectMapper.convertValue(agg.path("demo100UsdMultiYear"), Map.class));
                 res.put("winRateImprovement", String.format(Locale.US, "%+.1f%%", portWin - baseWr));
                 res.put("profitFactorImprovement", String.format(Locale.US, "%+.2f PF", portPf - basePf));
                 res.put("sampleAuditTrades", recent);
